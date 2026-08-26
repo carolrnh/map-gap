@@ -1,0 +1,7 @@
+<form method="post" action="{{ url_for('lookup_post') }}" class="lookup-form">
+  <label for="{{ fid|default('q') }}">Google Business URL, or shop name + city</label>
+  <input id="{{ fid|default('q') }}" name="q" type="text" required autocomplete="off"
+         placeholder="https://maps.google.com/… or Summit Heating, Columbus">
+  <button class="btn" type="submit">Show me why I’m not showing</button>
+  <p class="hint">Free. No login. No call. No ranking guarantee. HVAC and plumbing shops only.</p>
+</form>

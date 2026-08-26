@@ -1,0 +1,178 @@
+/* Map Gap — local SKU A prototype. System fonts only. No CDNs. */
+:root {
+  --ink: #1b1e18;
+  --ink-2: #3a4036;
+  --paper: #f6f3ec;
+  --card: #fffdf8;
+  --line: #d7d0c4;
+  --accent: #2c4a36;
+  --accent-2: #1e3326;
+  --warn: #8a6a16;
+  --warn-bg: #f8eec8;
+  --unk: #6b3d12;
+  --unk-bg: #f3e2d2;
+  --disabled: #9aa193;
+  --ok: #2c4a36;
+  --shadow: 0 1px 0 rgba(27,30,24,.06), 0 8px 24px rgba(27,30,24,.06);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.5;
+  font-size: 16px;
+}
+a { color: var(--accent); }
+header.app {
+  background: var(--accent-2);
+  color: #f6f3ec;
+  padding: 14px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+header.app .brand { font-weight: 700; letter-spacing: .02em; }
+header.app .meta { font-size: 13px; opacity: .85; }
+.wrap { max-width: 920px; margin: 0 auto; padding: 28px 20px 64px; }
+.hero h1 { font-size: 34px; line-height: 1.15; margin: 0 0 10px; }
+.hero .lede { font-size: 18px; color: var(--ink-2); margin: 0 0 22px; max-width: 42em; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+label { display: block; font-size: 13px; font-weight: 650; margin: 12px 0 6px; }
+input[type=text], input[type=url], input[type=email] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  background: #fff;
+}
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+.hint { font-size: 13px; color: var(--ink-2); margin: 4px 0 0; }
+.pay {
+  display: inline-block;
+  margin-top: 18px;
+  background: var(--disabled);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 700;
+  cursor: not-allowed;
+  opacity: .85;
+}
+.pay-note { margin: 8px 0 0; font-size: 13px; color: var(--unk); }
+.legal {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--ink-2);
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.muted { color: var(--ink-2); }
+.banner {
+  background: var(--warn-bg);
+  color: #4a3a08;
+  border: 1px solid #e0cc7a;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 650;
+  margin: 0 0 18px;
+}
+.banner.unk {
+  background: var(--unk-bg);
+  border-color: #e0c0a4;
+  color: var(--unk);
+}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; }
+@media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+h2 { font-size: 20px; margin: 28px 0 10px; }
+h3 { font-size: 16px; margin: 18px 0 8px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  font-size: 14px;
+}
+th, td {
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #ece7dc; font-weight: 650; }
+.unk, .u {
+  display: inline-block;
+  background: var(--unk-bg);
+  color: var(--unk);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.ex {
+  display: inline-block;
+  background: var(--warn-bg);
+  color: #4a3a08;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+ol.actions, ul { padding-left: 1.2em; }
+footer.app {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.price { font-variant-numeric: tabular-nums; font-weight: 700; }
+.faq dt { font-weight: 650; margin-top: 10px; }
+.faq dd { margin: 2px 0 0; color: var(--ink-2); }
+.section { margin-top: 8px; }
+.empty-note { font-size: 14px; color: var(--ink-2); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+@media print {
+  header.app { background: #000; }
+  .pay, .no-print { display: none !important; }
+  body { background: #fff; }
+}
+
+.cta {
+  display: inline-block;
+  margin-top: 18px;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cta:hover { background: var(--accent-2); }
+.who { font-size: 14px; font-weight: 650; color: var(--accent); margin: 0 0 16px; }
+.suspend {
+  background: var(--unk-bg);
+  color: var(--unk);
+  border: 1px solid #e0c0a4;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin: 14px 0 0;
+  font-size: 14px;
+}
+.steps { margin: 8px 0 0; padding-left: 1.2em; }

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Why did my Google Business listing disappear?{% endblock %}
+{% block description %}Listing gone from Maps is usually suspension, a merge, or a live profile that stopped showing. HVAC and plumbing only. We don’t unsuspend. If it’s live, see the public gaps. Free teaser. Full report $197.{% endblock %}
+{% block og_title %}Why did my Google Business listing disappear?{% endblock %}
+{% block main %}
+<section class="hero">
+  <h1>Why did my Google Business listing disappear?</h1>
+  <p class="lede">Gone from Maps is usually one of three things. Pick the fork you can actually see. We don’t recover listings and we don’t invent a cause.</p>
+  <p class="kicker">For HVAC and plumbing shops only.</p>
+</section>
+
+<section class="card">
+  <h2>1. Suspended or “not approved”</h2>
+  <p>If Google says the profile is suspended, disabled, or not approved: stop. That is an appeal to Google, not a ranking report.</p>
+  <p><a class="btn" href="{{ url_for('page_suspended') }}">Suspension is Google’s appeal</a></p>
+</section>
+<section class="card">
+  <h2>2. Merged / duplicate / “this listing has been updated”</h2>
+  <p>Use Google’s own listing tools in the account that owns the profile. We don’t take ownership. We don’t merge listings for you.</p>
+</section>
+<section class="card">
+  <h2>3. Live, but customers don’t see it</h2>
+  <p>Search Maps for the exact shop name. If the profile opens, the listing is live and “disappeared” usually means it stopped showing in the pack. That’s the public-gaps teaser.</p>
+  <p class="kicker" style="margin-top:12px">Still live?</p>
+  {% include "_lookup_form.html" %}
+</section>
+
+<section>
+  <h2>How to tell which (what you can see)</h2>
+  <ul>
+    <li><strong>Google Business dashboard</strong> shows suspended / disabled → fork 1.</li>
+    <li>Maps search for the exact name <em>fails</em> and dashboard looks merged → fork 2.</li>
+    <li>Maps search for the exact name <em>opens the profile</em> → fork 3. Paste it.</li>
+  </ul>
+  <p class="hint">No score. No invented checklist points.</p>
+</section>
+<p class="legal-line">No fake reviews. No ownership transfer. No #1 promises. We don’t unsuspend listings. You keep the listing. No ranking is guaranteed.</p>
+{% endblock %}

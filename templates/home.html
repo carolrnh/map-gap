@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Map Gap — Map Pack Report for HVAC and plumbing{% endblock %}
+{% block description %}HVAC and plumbing shops paste their Google listing, see a free teaser of why they lose the map pack, and buy the full Map Pack Report for $197.{% endblock %}
+{% block og_title %}Your HVAC or plumbing shop is losing the Google map pack.{% endblock %}
+{% block og_description %}Paste your Google listing. Free teaser. Full Map Pack Report $197. HVAC and plumbing only.{% endblock %}
+{% block main %}
+<section class="hero">
+  <p class="kicker">Map Pack Report · HVAC &amp; plumbing</p>
+  <h1>Your HVAC or plumbing shop is losing the Google map pack. Here’s the proof.</h1>
+  <p class="lede">Paste your Google listing. In a minute you’ll see the three gaps that usually bury a shop under the competitor with worse work and a better profile.</p>
+</section>
+
+<section class="card lookup" id="lookup">
+  {% if form_error %}<p class="err" role="alert">{{ form_error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('lookup_post') }}" id="lookup-form">
+    <label for="q">Google Business URL, or shop name + city</label>
+    <input id="q" name="q" type="text" required autocomplete="off"
+           placeholder="https://maps.google.com/… or Summit Heating, Columbus"
+           value="{{ (form.q if form else '') }}">
+    <button class="btn" type="submit" id="go">Show me the free teaser</button>
+    <p class="hint">Free. No login. No call. No ranking guarantee.</p>
+  </form>
+</section>
+
+<p><strong>Who it’s for:</strong> HVAC and plumbing shops that already have a Google listing.</p>
+<p><strong>Who it’s not:</strong> anyone who wants “#1 on Google,” fake reviews, or us to take over the listing.</p>
+
+<h2 id="how">How it works</h2>
+<ol class="steps">
+  <li>Paste the listing.</li>
+  <li>Get three public gaps, free.</li>
+  <li>Unlock the full Map Pack Report for $197 if you want the rest.</li>
+</ol>
+
+<section class="grid-2">
+  <div>
+    <h2>What the $197 report actually is</h2>
+    <p>A one-page teardown of you vs the three shops that show up in the map pack for your main job + city: categories they have that you don’t, how fast they get reviews vs you, whether anyone is posting, and which services on their listing you left blank. Then a this-week vs later list. You apply the changes. We never take ownership of the listing.</p>
+  </div>
+  <div>
+    <h2>What it is not</h2>
+    <p>Not SEO theater. Not a monthly retainer. Not a ranking promise. If the teaser is useless, don’t buy the report.</p>
+    <p>Free teaser. Full report $197. Optional listing rebuild $397 after you have the report.</p>
+  </div>
+</section>
+
+{% include "_faq.html" %}
+<p class="legal-line">No fake reviews. No ownership transfer. No #1 promises. You keep the listing. No ranking is guaranteed.</p>
+{% endblock %}

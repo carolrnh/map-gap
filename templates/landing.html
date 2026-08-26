@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Why isn’t my business showing up on Google Maps?{% endblock %}
+{% block description %}Live listing but missing from Google Maps? See the public gaps. HVAC and plumbing shops only. Free teaser. Full report $197. We don’t unsuspend listings and we don’t take over your profile.{% endblock %}
+{% block og_title %}Why isn’t my business showing up on Google Maps?{% endblock %}
+{% block og_description %}Live listing but missing from Google Maps? See the public gaps. HVAC and plumbing shops only. Free teaser. Full report $197. We don’t unsuspend listings and we don’t take over your profile.{% endblock %}
+{% block main %}
+<section class="hero">
+  <h1>Why isn’t my business showing up on Google Maps?</h1>
+  <p class="lede">If the listing is live and you’re still missing from the map, it’s usually the profile — not “you need more ads.” Paste it. In a minute you’ll see three public gaps.</p>
+  <p class="kicker">For HVAC and plumbing shops only.</p>
+</section>
+
+<section class="card lookup" id="lookup">
+  {% if form_error %}<p class="err" role="alert">{{ form_error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('lookup_post') }}" id="lookup-form">
+    <label for="q">Google Business URL, or shop name + city</label>
+    <input id="q" name="q" type="text" required autocomplete="off"
+           placeholder="https://maps.google.com/… or Summit Heating, Columbus"
+           value="{{ (form.q if form else '') }}">
+    <button class="btn" type="submit" id="go">Show me why I’m not showing</button>
+    <p class="hint">Free. No login. No call. No ranking guarantee.</p>
+  </form>
+  <p class="hint" style="margin-top:14px">If Google <em>suspended</em> the listing, this report will not get it back. That’s an appeal to Google. Don’t pay $197 for that.</p>
+</section>
+
+<p><strong>Who it’s for:</strong> HVAC and plumbing shops with a <em>live</em> Google listing that still doesn’t show (or shows under everyone else).</p>
+<p><strong>Who it’s not:</strong> suspended-listing recovery, “#1 on Google,” fake reviews, or us taking over the profile.</p>
+
+<h2>How it works</h2>
+<ol class="steps">
+  <li>Paste the listing.</li>
+  <li>Get three public gaps, free.</li>
+  <li>Unlock the full Map Pack Report for $197 if you want the rest.</li>
+</ol>
+
+<section class="grid-2">
+  <div>
+    <h2>What the $197 report actually is</h2>
+    <p>A one-page teardown of you vs the three shops that show up in the map pack for your main job + city: categories they have that you don’t, how fast they get reviews vs you, whether anyone is posting, and which services on their listing you left blank. Then a this-week vs later list. You apply the changes. We never take ownership of the listing.</p>
+  </div>
+  <div>
+    <h2>What it is not</h2>
+    <p>Not SEO theater. Not a monthly retainer. Not a ranking promise. If the teaser is useless, don’t buy the report.</p>
+    <p>Free teaser. Full report $197. Optional listing rebuild $397 after you have the report.</p>
+  </div>
+</section>
+
+{% include "_faq.html" %}
+<p class="legal-line">No fake reviews. No ownership transfer. No #1 promises. You keep the listing. No ranking is guaranteed. We don’t unsuspend listings.</p>
+{% endblock %}

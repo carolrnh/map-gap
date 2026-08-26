@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Legal — Map Gap{% endblock %}
+{% block description %}Terms, privacy, and hard nos for Map Gap. US HVAC and plumbing owners. No ranking guarantees.{% endblock %}
+{% block og_title %}Legal — Map Gap{% endblock %}
+{% block main %}
+<section class="hero tight">
+  <p class="kicker">US · America/New_York</p>
+  <h1>Legal</h1>
+  <p class="lede">Short, readable, and meant to be kept. This is not a ranking contract.</p>
+</section>
+
+<section class="card">
+  <h2>What Map Gap is</h2>
+  <p>A self-serve page for HVAC and plumbing owners with a public Google Business Profile. You paste a listing, see a free teaser from public data, and may buy a one-time Map Pack Report for $197. After that report, you may buy a one-time Listing Rebuild for $397. You apply the changes. We never take ownership of the listing.</p>
+</section>
+
+<section class="card">
+  <h2>Hard nos</h2>
+  <ol>
+    <li><strong>No keyword-stuffed names.</strong> Do not rename “Joe’s Plumbing” to “Joe’s Plumbing Plumber Near Me Best Plumber Town.” Google suspends that. Use the legal business name.</li>
+    <li><strong>No fake reviews.</strong> We do not buy, swap, gate, or write reviews as the customer. We do not sell “15 reviews this month.”</li>
+    <li><strong>No listing hostage.</strong> We never take Google Business Profile ownership. You remain the owner. Manager access is not required for the $197 report.</li>
+    <li><strong>No guaranteed rankings.</strong> No “#1 on Google,” no “map pack in 14 days,” no “you will outrank X.”</li>
+    <li><strong>No invented numbers.</strong> Review counts, stars, positions, and competitor names are observed or they are UNKNOWN. UNKNOWN is not zero.</li>
+    <li><strong>No email or DMs.</strong> There is no contact form and no chat. We do not message you.</li>
+    <li><strong>No monthly plan on this site.</strong> Report is $197. Rebuild is $397, one time.</li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>The $197 report</h2>
+  <p>Paid before delivery of the full file. If <code>STRIPE_PAYMENT_LINK_URL</code> is not configured, the site will not collect a card and will show “Payment not connected yet.” There is no simulated checkout.</p>
+  <p>The free teaser uses public map listings (OpenStreetMap Nominatim) and, when you paste a Google URL, that public page. 90-day review velocity and Google posts stay UNKNOWN unless they were actually on the page we could read.</p>
+</section>
+
+<section class="card">
+  <h2>Privacy</h2>
+  <ul>
+    <li>We store the lookup you submitted (name, city, URL) and the public-data file on the machine that runs this app, so you can reopen the teaser.</li>
+    <li>We do not ask for a Google login. We do not scrape behind sign-in.</li>
+    <li>We do not collect email on this form. We do not send mail or DMs from this app.</li>
+    <li>We do not sell lookup data. There is no third-party analytics pixel in this build.</li>
+    <li>If you pay through Stripe, Stripe processes the card under Stripe’s terms. This app does not see the card number.</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Disclaimer</h2>
+  <p>This is research and copy for you to apply on your own Google Business Profile. You keep ownership. No ranking is guaranteed. We do not write fake reviews or change your legal business name.</p>
+  <p>Public sources can be stale, blocked, or incomplete. A match on OpenStreetMap is not a Google ranking. Nearby OSM shops are not the map pack.</p>
+  <p>Service income is ordinary US income. Keep receipts. This page is not tax advice.</p>
+</section>
+{% endblock %}

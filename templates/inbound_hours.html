@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Google Business hours wrong — fix the listing, then see if Maps still hides you{% endblock %}
+{% block description %}Wrong hours on Google Business are edited in the profile you own. If the listing is live and you still don’t show on the map, that’s a different gap. HVAC and plumbing only. Free teaser. We don’t take over the profile.{% endblock %}
+{% block og_title %}Google Business hours wrong?{% endblock %}
+{% block main %}
+<section class="hero">
+  <h1>Google Business hours wrong?</h1>
+  <p class="lede">Hours are an owner edit in the Google profile you already own. We will not log in and set them. If hours are already right and you still don’t show on the map, that’s a different gap.</p>
+  <p class="kicker">For HVAC and plumbing shops only.</p>
+</section>
+
+<section class="card">
+  <h2>Fix hours yourself</h2>
+  <p>Open Google Business Profile → Info → hours. You keep the listing. We don’t take it over.</p>
+  <p class="hint">Demand context, not a Map Gap feature: in Aug 2026, Local Services Ads moving toward Google Ads use GBP hours as source of truth; wrong hours can pause ads 24–48h (Search Engine Roundtable / Digital Applied). We do not unpause ads.</p>
+</section>
+
+<section class="card" id="lookup">
+  <h2>Hours are right and you still don’t show?</h2>
+  <p>That’s categories, reviews, posts, and services vs the shops in the pack — not an hours SKU.</p>
+  {% include "_lookup_form.html" %}
+  <p class="hint">If Google <em>suspended</em> the listing, the report will not get it back. Don’t pay $197 for that. <a href="{{ url_for('page_suspended') }}">Suspension page</a>.</p>
+</section>
+
+<section>
+  <h2>What $197 covers (not hours)</h2>
+  <p>You vs 3 map-pack shops: categories, review velocity, posts, services, this-week vs later. You apply the changes. We never set your hours.</p>
+</section>
+<section class="faq">
+  <h2>FAQ</h2>
+  <dl>
+    <dt>Will you log in and fix hours?</dt>
+    <dd>No. You keep the listing.</dd>
+    <dt>Do you guarantee the map pack?</dt>
+    <dd>No.</dd>
+    <dt>Will fixing hours unpause my ads?</dt>
+    <dd>We don’t promise that. Google’s hours rules are theirs.</dd>
+  </dl>
+</section>
+<p class="legal-line">No fake reviews. No ownership transfer. No #1 promises. You keep the listing. No ranking is guaranteed.</p>
+{% endblock %}

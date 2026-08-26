@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Map Gap — EXAMPLE Map Pack Report</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="app">
+    <div class="brand">Map Gap</div>
+    <div class="meta">SKU A · EXAMPLE data · not a real business</div>
+  </header>
+  <main class="wrap" id="app">
+    <p>Loading EXAMPLE report…</p>
+  </main>
+  <footer class="app">
+    EXAMPLE layout only. No fake reviews. No ownership transfer. No #1 promises. You keep the listing. No ranking is guaranteed.
+  </footer>
+  <script type="application/json" id="report-data">
+{
+  "sku": "A",
+  "product": "Map Gap",
+  "title": "Map Pack Audit",
+  "price": 197,
+  "example": true,
+  "generatedAt": "Aug 26, 2026, 3:40 PM ET",
+  "dataPolicy": "EXAMPLE layout only. Not observed from a live listing. Not a real business.",
+  "intake": {
+    "gbpUrl": "https://example.invalid/gbp/north-example-heating",
+    "name": "North Example Heating & Air",
+    "city": "Example City, ST",
+    "email": "owner@example.invalid"
+  },
+  "snapshot": {
+    "name": "North Example Heating & Air",
+    "nap": "100 Example Ave, Example City, ST 00000 \u00b7 (555) 010-0197",
+    "gbpUrl": "https://example.invalid/gbp/north-example-heating",
+    "website": "https://example.invalid",
+    "primaryCategory": "HVAC contractor",
+    "secondaries": "Air conditioning repair service, Furnace repair shop",
+    "storefrontOrSab": "Storefront",
+    "stars": "4.6",
+    "reviewCount": "88",
+    "reviews30": "2",
+    "reviews60": "5",
+    "reviews90": "9",
+    "posts90": "0",
+    "services": "AC repair; Furnace repair (no descriptions)",
+    "snapshotTime": "Aug 26, 2026, 3:40 PM ET",
+    "fetchStatus": "EXAMPLE \u2014 not a live fetch"
+  },
+  "competitors": [
+    {
+      "slot": 1,
+      "name": "Example Comfort Co.",
+      "gbpUrl": "https://example.invalid/gbp/example-comfort",
+      "primaryCategory": "HVAC contractor",
+      "secondaries": "Air conditioning repair service, Water heater installation, Indoor air quality testing",
+      "stars": "4.7",
+      "reviewCount": "214",
+      "reviews30": "8",
+      "reviews60": "16",
+      "reviews90": "24",
+      "posts90": "6",
+      "services": "AC repair; Furnace install; Water heater (with descriptions)",
+      "packPosition": "1"
+    },
+    {
+      "slot": 2,
+      "name": "Example Pipe & Drain",
+      "gbpUrl": "https://example.invalid/gbp/example-pipe",
+      "primaryCategory": "Plumber",
+      "secondaries": "Water heater installation, Drain cleaning service",
+      "stars": "4.4",
+      "reviewCount": "131",
+      "reviews30": "4",
+      "reviews60": "9",
+      "reviews90": "12",
+      "posts90": "1",
+      "services": "Drain cleaning; Water heater",
+      "packPosition": "2"
+    },
+    {
+      "slot": 3,
+      "name": "Example Air Works",
+      "gbpUrl": "https://example.invalid/gbp/example-air-works",
+      "primaryCategory": "Air conditioning repair service",
+      "secondaries": "HVAC contractor, Furnace repair shop",
+      "stars": "4.8",
+      "reviewCount": "67",
+      "reviews30": "3",
+      "reviews60": "7",
+      "reviews90": "11",
+      "posts90": "0",
+      "services": "AC repair; Indoor air quality",
+      "packPosition": "3"
+    }
+  ],
+  "missingCategories": [
+    {
+      "category": "Water heater installation",
+      "who": "Example Comfort Co.; Example Pipe & Drain",
+      "offer": "UNKNOWN \u2014 owner must confirm they actually offer this",
+      "rec": "add only if true; otherwise skip"
+    },
+    {
+      "category": "Indoor air quality testing",
+      "who": "Example Comfort Co.",
+      "offer": "UNKNOWN \u2014 owner must confirm they actually offer this",
+      "rec": "add only if true; otherwise skip"
+    }
+  ],
+  "thisWeek": [
+    "Add secondary category: Water heater installation \u2014 only if you actually install water heaters.",
+    "Add 2\u20133 sentence service descriptions on GBP for AC repair and furnace repair (currently listed with no descriptions).",
+    "Ask 3 recent customers for a Google review. Do not buy reviews. Star rating is not the gap; velocity is (EXAMPLE: you 9/90d vs C1 24/90d \u2192 3/mo vs 8/mo)."
+  ],
+  "later": [
+    "GBP posts: 0 in 90 days on this EXAMPLE listing. Posts expire in 7 days. A quiet profile looks closed. Start 2 posts/week after this-week category/service fixes.",
+    "Photo set and Q&A are out of scope for SKU A.",
+    "Listing rebuild copy (calendar + reply templates) is a separate SKU, not included here."
+  ],
+  "unknownRule": "If a field was not visible on a public page at generation time, it is UNKNOWN. UNKNOWN is not zero and is not a ranking. We do not invent review counts, star ratings, map-pack positions, competitor names, or categories. THIS FILE IS EXAMPLE LAYOUT \u2014 every number is sample data for a fake shop named North Example Heating & Air in Example City, ST. It is not a live audit.",
+  "fetch": {
+    "ok": false,
+    "status": 0,
+    "reason": "EXAMPLE file \u2014 no live fetch was performed"
+  },
+  "extractNote": "EXAMPLE DATA. Not observed."
+}
+
+  </script>
+  <script src="js/report.js"></script>
+</body>
+</html>

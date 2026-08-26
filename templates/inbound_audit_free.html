@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Free Google Business Profile audit — HVAC and plumbing (live listings only){% endblock %}
+{% block description %}Paste the listing. Three public gaps, free. No signup. Full Map Pack Report $197 if you want you vs three pack shops. We don’t unsuspend listings and we don’t take over your profile. HVAC and plumbing only.{% endblock %}
+{% block og_title %}Free Google Business Profile audit{% endblock %}
+{% block main %}
+<section class="hero">
+  <h1>Free Google Business Profile audit</h1>
+  <p class="kicker">For HVAC and plumbing shops only.</p>
+  <p class="lede">Paste the listing. Three public gaps, free. No signup. Not a geo-grid. Not a login into your Google account.</p>
+</section>
+
+<section class="card lookup" id="lookup">
+  {% include "_lookup_form.html" %}
+  <p class="hint">If Google <em>suspended</em> the listing, this report will not get it back. Don’t pay $197 for that. <a href="{{ url_for('page_suspended') }}">That’s Google’s appeal</a>.</p>
+</section>
+
+<section>
+  <h2>What the free teaser is</h2>
+  <ul>
+    <li>Three public gaps (categories, review velocity, posts) from public listing data</li>
+    <li>UNKNOWN if a field is not on the page — never invented as zero</li>
+  </ul>
+  <h2>What it is not</h2>
+  <ul>
+    <li>Not a geo-grid or “map pack checker” heatmap</li>
+    <li>Not BrightLocal</li>
+    <li>Not OAuth into your Google account (we do not copy login-gated graders)</li>
+    <li>Not a 5,000-point citation dump</li>
+    <li>Not an email gate for the teaser</li>
+  </ul>
+</section>
+<section>
+  <h2>What $197 adds</h2>
+  <p>You vs 3 pack competitors: categories, review velocity, posts, services, this-week vs later. You apply it. You keep the listing.</p>
+  <p class="hint">Competitor pattern (not our metric): gbpcentral.com/audit showed 83 audits since Mar 26, 2026 on-page when Scout looked. We do not publish an audit count.</p>
+</section>
+<p class="legal-line">No fake reviews. No ownership transfer. No #1 promises. We don’t unsuspend listings. No ranking is guaranteed.</p>
+{% endblock %}

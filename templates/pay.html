@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Full Map Pack Report — $197 — Map Gap{% endblock %}
+{% block main %}
+<section class="hero tight">
+  <p class="kicker">Pay once</p>
+  <h1>Full Map Pack Report — $197</h1>
+  <p class="lede">Pay once. Get the one-pager + sheet. You keep the listing.</p>
+</section>
+
+<div class="card">
+  <h2>What’s included</h2>
+  <ul>
+    <li>You vs 3 map-pack competitors (categories, review velocity, posts, services)</li>
+    <li>This-week vs later fix list</li>
+    <li>Delivery to the thank-you page after payment (no email required for v1)</li>
+  </ul>
+  <h2>What’s not</h2>
+  <p>Ranking promise, fake reviews, we log into your Google, monthly management.</p>
+
+  {% if pay_href %}
+    <p><a class="btn" href="{{ pay_href }}">Pay $197</a></p>
+  {% else %}
+    <p><button class="btn pay-off" type="button" disabled>Payment not connected yet</button></p>
+  {% endif %}
+  <p class="hint">US card. No subscription. 2.9% + 30¢ processing when the link exists.</p>
+</div>
+
+{% include "_faq.html" %}
+{% endblock %}

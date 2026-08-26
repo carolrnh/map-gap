@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: map-gap
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.5"
+      - key: MAPGAP_HOST
+        value: "0.0.0.0"
+      - key: STRIPE_PAYMENT_LINK_URL
+        sync: false

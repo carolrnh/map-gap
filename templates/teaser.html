@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Three public reasons you lose the map pack — Map Gap{% endblock %}
+{% block description %}Free public-data teaser. Review counts only if observed. Full Map Pack Report $197.{% endblock %}
+{% block main %}
+<section class="hero tight">
+  <p class="kicker">Free teaser · public listing data</p>
+  <h1>Three public reasons you lose the map pack</h1>
+  <p class="lede">
+    {% if teaser.display_name and teaser.display_name != unknown %}{{ teaser.display_name }}{% endif %}
+    {% if teaser.city and teaser.city != unknown %} · {{ teaser.city }}{% endif %}
+  </p>
+</section>
+
+{% if not vertical_ok %}
+  <div class="card banner unk">
+    <p>{{ thin_reason or "This page is HVAC and plumbing only." }}</p>
+    <p><a href="{{ url_for('landing') }}">Try an HVAC or plumbing listing</a></p>
+  </div>
+{% elif thin %}
+  <div class="card banner unk">
+    <p>{{ thin_reason or "Not enough public map-pack data to tease. Don’t pay $197 for a guess." }}</p>
+    <p class="hint">We will not invent review counts, competitors, or a ranking. Unlock is hidden so you don’t pay for a guess.</p>
+    <p><a href="{{ url_for('landing') }}">Try another listing</a></p>
+  </div>
+{% else %}
+  <ol class="bullets">
+    {% for b in bullets %}
+    <li>
+      <h2>{{ b.title }}</h2>
+      <p>{{ b.body }}</p>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="hint caveat">This is public listing data, not a ranking guarantee. The full report names the three competitors, the rest of the gaps, and what to change this week.</p>
+  {% if show_paywall %}
+    <p><a class="btn" href="#pay">Unlock the full Map Pack Report — ${{ price }}</a></p>
+    <p><a href="#pay">See what’s in the report</a></p>
+  {% endif %}
+{% endif %}
+
+{% if teaser.found %}
+<section class="card">
+  <h2>What public data showed</h2>
+  <table class="sheet">
+    <tbody>
+      <tr><th>Name</th><td>{{ teaser.nap.name }}</td></tr>
+      <tr><th>Address</th><td>{{ teaser.nap.address }}</td></tr>
+      <tr><th>Category (public label)</th><td>{{ teaser.nap.category }}</td></tr>
+      <tr>
+        <th>Review count</th>
+        <td>
+          {% if teaser.review_count is not none %}
+            {{ teaser.review_count }}{% if teaser.review_source %} <span class="muted">({{ teaser.review_source }})</span>{% endif %}
+          {% else %}
+            <span class="unk">UNKNOWN</span>
+            <div class="hint">{{ teaser.review_unknown_reason }}</div>
+          {% endif %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="hint">UNKNOWN is not zero. We do not invent a 90-day review count or a post count.</p>
+</section>
+{% endif %}
+
+{% if show_paywall %}
+<section class="paywall card" id="pay">
+  <h2>Full Map Pack Report — ${{ price }}</h2>
+  <p>Pay once. Get the one-pager + sheet. You keep the listing.</p>
+  <h3>What’s included</h3>
+  <ul>
+    <li>You vs 3 map-pack competitors (categories, review velocity, posts, services)</li>
+    <li>This-week vs later fix list</li>
+    <li>Delivery to the thank-you page after payment (no email required for v1)</li>
+  </ul>
+  <h3>What’s not</h3>
+  <p>Ranking promise, fake reviews, we log into your Google, monthly management.</p>
+  {% if pay_href %}
+    <a class="btn pay-live" href="{{ pay_href }}" rel="noopener">Pay ${{ price }}</a>
+    <p class="hint">US card. No subscription. 2.9% + 30¢ processing when the link exists.</p>
+  {% else %}
+    <button class="btn pay-off" type="button" disabled aria-disabled="true">Payment not connected yet</button>
+    <p class="pay-note">US card. No subscription. 2.9% + 30¢ processing when the link exists.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<p class="legal-line">This is research and copy for you to apply on your own Google Business Profile. You keep ownership. No ranking is guaranteed. We do not write fake reviews or change your legal business name.</p>
+{% endblock %}

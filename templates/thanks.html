@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Your Map Pack Report — Map Gap{% endblock %}
+{% block main %}
+<section class="hero tight">
+  <h1>Your Map Pack Report</h1>
+  <p class="lede">Download the one-pager and the sheet. You own the listing. Apply what you want. Skip what you don’t.</p>
+</section>
+<section class="card">
+  {% if payment_connected %}
+  <p>If you finished checkout, stay on this drop — v1 does not email the report. Automatic unlock needs a Stripe webhook; until then the paid Stripe reference is the lookup id.</p>
+  {% else %}
+  <p>Payment is not connected on this instance. Visiting this page did not charge a card.</p>
+  {% endif %}
+  {% if rid %}
+  <p>Lookup reference: <code>{{ rid }}</code> — <a href="{{ url_for('teaser', rid=rid) }}">back to teaser</a></p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Want the words written for you?</h2>
+  <p>Listing Rebuild — $397. Category list to add yourself, services copy (2–3 sentences each), 8 weeks of Google posts (first 4 weeks written), and review-reply templates so you are not staring at a blank box. Still your login. Still no ranking promise.</p>
+  {% if stripe_rebuild_url %}
+    <p><a class="btn" href="{{ stripe_rebuild_url }}">Add Listing Rebuild — $397</a></p>
+  {% else %}
+    <p><button class="btn" type="button" disabled>Payment not connected yet</button></p>
+  {% endif %}
+</section>
+<p><a href="{{ url_for('landing') }}">Back to Map Gap</a></p>
+{% endblock %}

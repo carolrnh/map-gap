@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Google Business Profile suspended — how to fix (this is Google’s appeal, not a $197 report){% endblock %}
+{% block description %}If Google suspended the listing, you appeal to Google. Map Gap does not unsuspend profiles and you should not pay $197 for that. HVAC and plumbing shops: if the listing is live and still not showing, that’s a different page.{% endblock %}
+{% block og_title %}Google Business Profile suspended? This report will not get it back.{% endblock %}
+{% block main %}
+<section class="hero">
+  <h1>Google Business Profile suspended? This report will not get it back.</h1>
+  <p class="lede">A suspension is Google’s decision. You appeal to Google. We do not file it, we do not unsuspend listings, and this page is not a product.</p>
+  <p class="kicker">For HVAC and plumbing shops only.</p>
+</section>
+
+<section class="card">
+  <h2>Do this</h2>
+  <p>Use Google’s official help and appeal from the account that owns the listing:</p>
+  <p>
+    <a class="btn" href="https://support.google.com/business/answer/4569145" rel="noopener noreferrer">Google: suspended or disabled profiles</a>
+  </p>
+  <p class="hint"><a href="https://support.google.com/business/answer/13597551" rel="noopener noreferrer">Google Help: deceptive content</a> (opens Google, not us).</p>
+  <p class="hint">Trade press (not a Map Gap claim): ACHR News, Jun 15, 2025, notes HVAC and plumbing as higher-risk Google Business categories.</p>
+</section>
+
+<section>
+  <h2>Which problem is this?</h2>
+  <ul>
+    <li><strong>Suspended / not approved / deceptive content</strong> — stay here. Appeal to Google. Stop.</li>
+    <li><strong>Listing vanished or “updated”</strong> — <a href="{{ url_for('page_disappear') }}">why did my listing disappear?</a></li>
+    <li><strong>Live, but customers don’t see you on the map</strong> — that’s <a href="{{ url_for('landing') }}">not showing on Maps</a>, not a suspension.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Don’t do this</h2>
+  <ul>
+    <li>Pay a reinstatement mill.</li>
+    <li>Pay Map Gap for a ranking report to “fix” a suspension.</li>
+    <li>Buy fake reviews or change the business name to game policy.</li>
+  </ul>
+</section>
+
+<section class="card" id="live">
+  <h2>If the listing is actually live</h2>
+  <p>Search Maps for the <em>exact</em> shop name. If the profile opens, it is not suspended. Then the public-gaps teaser on the home page is the product — not this page.</p>
+  <label><input type="checkbox" id="live-ok"> I can open the listing on Maps by exact name. It is live.</label>
+  <div id="live-form" hidden>
+    {% include "_lookup_form.html" %}
+  </div>
+</section>
+
+<section class="faq">
+  <h2>FAQ</h2>
+  <dl>
+    <dt>My Google Business Profile is suspended. Can you fix that?</dt>
+    <dd>No. A suspension is a Google appeal. We don’t file it.</dd>
+    <dt>Suspended for deceptive content?</dt>
+    <dd>Still Google’s appeal. Read <a href="https://support.google.com/business/answer/13597551" rel="noopener noreferrer">Google’s deceptive content help</a>.</dd>
+    <dt>It happened after an address change / “for no reason”?</dt>
+    <dd>Still Google’s appeal. We don’t diagnose policy from this page.</dd>
+    <dt>Will you take over the listing?</dt>
+    <dd>No.</dd>
+    <dt>Listing is live and still not on the map?</dt>
+    <dd><a href="{{ url_for('landing') }}">That’s this.</a></dd>
+  </dl>
+</section>
+<p class="legal-line">No fake reviews. No ownership transfer. No #1 promises. We don’t unsuspend listings.</p>
+<script>
+(function () {
+  var box = document.getElementById("live-ok");
+  var form = document.getElementById("live-form");
+  if (!box || !form) return;
+  box.addEventListener("change", function () { form.hidden = !box.checked; });
+})();
+</script>
+{% endblock %}
