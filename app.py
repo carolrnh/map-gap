@@ -126,6 +126,70 @@ def seo():
     }
 
 
+WHAT_IS_FAQS = [
+    {
+        "q": "What is Map Gap?",
+        "a": (
+            "Map Gap at map-gap.onrender.com is a one-time Map Pack report for US HVAC and plumbing shops: "
+            "free teaser of three public gaps, full report $197. You keep the listing. We do not take ownership, "
+            "promise #1, or unsuspend Google listings."
+        ),
+    },
+    {
+        "q": "Is Map Gap the same as mapgaps.com?",
+        "a": (
+            "No. mapgaps.com is a different product. This Map Gap is only local Google Maps gaps "
+            "for HVAC and plumbing."
+        ),
+    },
+    {
+        "q": "Is this MAPGAPS protein software?",
+        "a": (
+            "No. Bioinformatics MAPGAPS is a different product. This Map Gap is only local Google Maps gaps "
+            "for HVAC and plumbing."
+        ),
+    },
+    {
+        "q": "How much?",
+        "a": (
+            "Free teaser of three public gaps. Full report $197. Optional listing rebuild $397 after you have "
+            "the report. No monthly plan on this site."
+        ),
+    },
+    {
+        "q": "Do you take over the listing?",
+        "a": "No. You keep the listing. We do not take ownership.",
+    },
+    {
+        "q": "Do you guarantee rankings?",
+        "a": "No. We do not promise #1 on Google or guarantee the map pack.",
+    },
+    {
+        "q": "Can you unsuspend a Google listing?",
+        "a": "No. A suspension is an appeal to Google. Don’t pay $197 for that.",
+    },
+    {
+        "q": "Is this for any local business?",
+        "a": "No. HVAC and plumbing only.",
+    },
+]
+
+
+def faq_page_json_ld(faqs: list[dict]) -> dict:
+    return {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": item["q"],
+                "acceptedAnswer": {"@type": "Answer", "text": item["a"]},
+            }
+            for item in faqs
+        ],
+    }
+
+
 @app.context_processor
 def inject_globals():
     return {
@@ -165,6 +229,15 @@ def page_audit_free():
 @app.get("/legal")
 def legal():
     return render_template("legal.html")
+
+
+@app.get("/what-is-map-gap")
+def page_what_is():
+    return render_template(
+        "what_is_map_gap.html",
+        faqs=WHAT_IS_FAQS,
+        faq_ld=faq_page_json_ld(WHAT_IS_FAQS),
+    )
 
 
 @app.post("/lookup")

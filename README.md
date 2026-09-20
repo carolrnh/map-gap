@@ -51,6 +51,7 @@ In Stripe, set the Payment Link after-payment URL to `http://127.0.0.1:8787/than
 | Path | What |
 |---|---|
 | `/` | Landing + lookup |
+| `/what-is-map-gap` | Name-ownership: this Map Gap vs mapgaps.com / MAPGAPS protein |
 | `POST /lookup` → `/r/<id>` | Free teaser (NAP, source log, UNKNOWN reviews) + $197 paywall |
 | `/pay/<id>` | $197 checkout stub |
 | `/thanks` | Post-pay drop + $397 Listing Rebuild |

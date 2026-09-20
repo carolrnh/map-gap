@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Map Gap — Google Maps audit for HVAC and plumbing (not mapgaps.com){% endblock %}
+{% block description %}Map Gap at map-gap.onrender.com is a one-time Map Pack report for US HVAC and plumbing shops: free teaser of three public gaps, full report $197. Not mapgaps.com. Not MAPGAPS protein software.{% endblock %}
+{% block og_title %}Map Gap — Google Maps audit for HVAC and plumbing (not mapgaps.com){% endblock %}
+{% block og_description %}Map Gap at map-gap.onrender.com is a one-time Map Pack report for US HVAC and plumbing shops. Free teaser. Full report $197. Not mapgaps.com.{% endblock %}
+{% block extra_head %}
+<script type="application/ld+json">{{ faq_ld | tojson }}</script>
+{% endblock %}
+{% block main %}
+<section class="hero">
+  <h1>Map Gap — Google Maps audit for HVAC and plumbing (not mapgaps.com)</h1>
+  <p class="name-own">Map Gap at map-gap.onrender.com is an HVAC and plumbing Google Maps audit — not mapgaps.com.</p>
+  <p class="lede">Map Gap at map-gap.onrender.com is a one-time Map Pack report for US HVAC and plumbing shops: free teaser of three public gaps, full report $197. You keep the listing. We do not take ownership, promise #1, or unsuspend Google listings.</p>
+  <p>If you landed here looking for mapgaps.com or bioinformatics MAPGAPS, that is a different product. This Map Gap is only local Google Maps gaps for HVAC and plumbing.</p>
+</section>
+
+<section>
+  <h2>What Map Gap is</h2>
+  <p>A one-time Map Pack report for US HVAC and plumbing shops. You paste a live Google listing. You get a free teaser of three public gaps. The full report is $197 if you want you vs the shops that show in the pack: categories, review velocity, posts, services, and a this-week vs later list. You apply the changes. You keep the listing.</p>
+</section>
+
+<section>
+  <h2>Who it’s for / not for</h2>
+  <p><strong>Who it’s for:</strong> HVAC and plumbing shops in the US with a live Google listing that still doesn’t show (or shows under everyone else).</p>
+  <p><strong>Who it’s not:</strong> mapgaps.com, bioinformatics MAPGAPS, any local business that is not HVAC or plumbing, suspended-listing recovery, “#1 on Google,” fake reviews, or us taking over the profile.</p>
+</section>
+
+<section>
+  <h2>Not the other MapGaps</h2>
+  <p><strong>mapgaps.com</strong> is a different product. If you meant that site, this is not it.</p>
+  <p><strong>MAPGAPS</strong> protein / bioinformatics software is a different product. This page is not that.</p>
+  <p>This Map Gap at map-gap.onrender.com is only local Google Maps gaps for HVAC and plumbing.</p>
+</section>
+
+<section>
+  <h2>Pricing</h2>
+  <ul>
+    <li>Free teaser: three public gaps.</li>
+    <li>Full Map Pack Report: $197, one time.</li>
+    <li>Optional Listing Rebuild: $397 after you have the report, one time.</li>
+    <li>No monthly plan on this site.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li>Paste the listing on the homepage.</li>
+    <li>Get three public gaps, free.</li>
+    <li>Unlock the full Map Pack Report for $197 if you want the rest.</li>
+  </ol>
+</section>
+
+<section class="card" id="teaser">
+  <h2>Run the free teaser</h2>
+  <p>Three public gaps. HVAC and plumbing only. No login. No ranking guarantee.</p>
+  <a class="btn" href="{{ url_for('landing') }}#lookup">Run free teaser on homepage</a>
+</section>
+
+<section class="faq" id="faq">
+  <h2>FAQ</h2>
+  <dl>
+    {% for item in faqs %}
+    <dt>{{ item.q }}</dt>
+    <dd>{{ item.a }}</dd>
+    {% endfor %}
+  </dl>
+</section>
+<p class="legal-line">No fake reviews. No ownership transfer. No #1 promises. You keep the listing. No ranking is guaranteed. We don’t unsuspend listings. Not mapgaps.com. Not MAPGAPS protein software.</p>
+{% endblock %}

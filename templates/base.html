@@ -11,16 +11,20 @@
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
   <header class="top">
-    <a class="brand" href="{{ url_for('landing') }}">
-      <span class="brand-map">MAP</span><span class="brand-gap">GAP</span>
-    </a>
-    <nav>
-      <a href="{{ url_for('landing') }}#lookup">Run a teaser</a>
-      <a href="{{ url_for('legal') }}">Legal</a>
-    </nav>
+    <div class="top-row">
+      <a class="brand" href="{{ url_for('landing') }}">
+        <span class="brand-map">MAP</span><span class="brand-gap">GAP</span>
+      </a>
+      <nav>
+        <a href="{{ url_for('landing') }}#lookup">Run a teaser</a>
+        <a href="{{ url_for('legal') }}">Legal</a>
+      </nav>
+    </div>
+    {% block brand_tagline %}{% endblock %}
   </header>
   <main>
     {% block main %}{% endblock %}
@@ -28,7 +32,7 @@
   <footer class="foot">
     <p>Map Gap is a report for US HVAC and plumbing owners. Not an agency. Not a ranking service.</p>
     <p>No fake reviews. No ownership transfer. No “#1 on Google.” You keep the listing. No ranking is guaranteed.</p>
-    <p><a href="{{ url_for('legal') }}">Terms, privacy, disclaimer</a> · ${{ price }} full report · teaser is free</p>
+    <p><a href="{{ url_for('legal') }}">Terms, privacy, disclaimer</a> · <a href="{{ url_for('page_what_is') }}">What is Map Gap</a> · ${{ price }} full report · teaser is free</p>
   </footer>
 </body>
 </html>
