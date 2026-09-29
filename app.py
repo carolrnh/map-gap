@@ -14,6 +14,7 @@ import sqlite3
 import threading
 from pathlib import Path
 from urllib.parse import urlencode
+from xml.sax.saxutils import escape
 
 from flask import Flask, g, redirect, render_template, request, send_from_directory, url_for
 
@@ -385,9 +386,36 @@ def favicon_ico():
     return send_from_directory(app.static_folder, "favicon.ico")
 
 
+SITEMAP_ENDPOINTS = (
+    "landing",
+    "page_what_is",
+    "legal",
+    "pay",
+    "page_suspended",
+    "page_disappear",
+    "page_hours",
+    "page_audit_free",
+)
+
+
+@app.get("/sitemap.xml")
+def sitemap_xml():
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for endpoint in SITEMAP_ENDPOINTS:
+        loc = escape(url_for(endpoint, _external=True))
+        lines.append(f"  <url><loc>{loc}</loc></url>")
+    lines.append("</urlset>")
+    return "\n".join(lines) + "\n", 200, {"Content-Type": "application/xml; charset=utf-8"}
+
+
 @app.get("/robots.txt")
 def robots():
-    return "User-agent: *\nAllow: /\n", 200, {"Content-Type": "text/plain"}
+    sitemap = url_for("sitemap_xml", _external=True)
+    body = f"User-agent: *\nAllow: /\n\nSitemap: {sitemap}\n"
+    return body, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 
 def main():
