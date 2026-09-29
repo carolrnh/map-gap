@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Google Business Profile suspended — appeal to Google{% endblock %}
-{% block description %}If Google suspended the listing, you appeal to Google. This check will not get it back. HVAC and plumbing shops: if the listing is live and still not showing, that’s a different page.{% endblock %}
-{% block og_title %}Google Business Profile suspended? This report will not get it back.{% endblock %}
+{% block description %}If Google suspended the listing, you appeal to Google. This checkup will not get it back. HVAC and plumbing shops: if the listing is live and still not showing, that’s a different page.{% endblock %}
+{% block og_title %}Google Business Profile suspended? This checkup will not get it back.{% endblock %}
 {% block main %}
 <section class="hero">
-  <h1>Google Business Profile suspended? This report will not get it back.</h1>
+  <h1>Google Business Profile suspended? This checkup will not get it back.</h1>
   <p class="lede">A suspension is Google’s decision. You appeal to Google. We do not file it, we do not unsuspend listings, and this page is not a product.</p>
 </section>
 
@@ -14,7 +14,7 @@
   <p>
     <a class="btn" href="https://support.google.com/business/answer/4569145" rel="noopener noreferrer">Google: suspended or disabled profiles</a>
   </p>
-  <p class="hint"><a href="https://support.google.com/business/answer/13597551" rel="noopener noreferrer">Google Help: deceptive content</a> (opens Google, not us).</p>
+  <p class="hint"><a class="tap-link" href="https://support.google.com/business/answer/13597551" rel="noopener noreferrer">Google Help: deceptive content</a> (opens Google, not us).</p>
   <p class="hint">Trade press (not a Map Gap claim): ACHR News, Jun 15, 2025, notes HVAC and plumbing as higher-risk Google Business categories.</p>
 </section>
 
@@ -23,7 +23,7 @@
   <ul>
     <li><strong>Suspended / not approved / deceptive content</strong> — stay here. Appeal to Google. Stop.</li>
     <li><strong>Listing vanished or “updated”</strong> — <a href="{{ url_for('page_disappear') }}">why did my listing disappear?</a></li>
-    <li><strong>Live, but customers don’t see you on the map</strong> — that’s <a href="{{ url_for('landing') }}">not showing on Maps</a>, not a suspension.</li>
+    <li><strong>Live, but customers don’t see you on the map</strong> — that’s <a class="tap-link" href="{{ url_for('landing') }}">not showing on Maps</a>, not a suspension.</li>
   </ul>
 </section>
 
@@ -57,10 +57,9 @@
     <dt>Will you take over the listing?</dt>
     <dd>You keep the listing.</dd>
     <dt>Listing is live and still not on the map?</dt>
-    <dd><a href="{{ url_for('landing') }}">That’s this.</a></dd>
+    <dd><a class="tap-link" href="{{ url_for('landing') }}">That’s this.</a></dd>
   </dl>
 </section>
-<p class="legal-line">You keep the listing. No ranking is guaranteed.</p>
 <script>
 (function () {
   var box = document.getElementById("live-ok");

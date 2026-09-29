@@ -15,8 +15,9 @@ import threading
 import time
 from pathlib import Path
 from urllib.parse import urlencode
+from xml.sax.saxutils import escape
 
-from flask import Flask, abort, g, redirect, render_template, request, url_for
+from flask import Flask, g, redirect, render_template, request, send_from_directory, url_for
 
 from limits import (
     DAILY_CAP_MESSAGE,
@@ -28,8 +29,9 @@ from limits import (
 )
 from lookup import UNKNOWN, run_lookup
 from places import PlacesError, google_places_enabled
-from places_lookup import persistable_record, refetch_places
+from places_lookup import persistable_record, places_link_view, refetch_places
 from report import PRICE, build_places_reports, build_reports
+from result_link import lookup_from_view, pack_link, unpack_link, view_from_lookup
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = ROOT / "data" / "mapgap.sqlite"
@@ -175,7 +177,7 @@ def seo():
         "title": "Why isn’t my HVAC or plumbing shop showing up on Google Maps?",
         "description": (
             "Paste your Google listing. See 3 things the shops above you have that you don’t. "
-            "Free check for HVAC and plumbing shops. Full check $195. Listing rebuild $397."
+            "Free check for HVAC and plumbing shops. Competitor report $195. Listing rebuild $397."
         ),
     }
 
@@ -185,7 +187,7 @@ WHAT_IS_FAQS = [
         "q": "What is Map Gap?",
         "a": (
             "Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops: "
-            "a free check of 3 things the shops above you have, and a $195 full check. You keep the listing."
+            "a free check of 3 things the shops above you have, and a $195 competitor report. You keep the listing."
         ),
     },
     {
@@ -205,8 +207,9 @@ WHAT_IS_FAQS = [
     {
         "q": "How much?",
         "a": (
-            "The free check shows 3 things the shops above you have. The full check is $195. "
-            "The listing rebuild is $397 after you have the full check. There is no monthly plan on this site."
+            "The free check shows 3 things the shops above you have. The competitor report is $195. "
+            "The listing rebuild is $397 after you have the competitor report. There is no monthly plan on this site. "
+            "If the report doesn't find anything useful, reply to your receipt email for a full refund."
         ),
     },
     {
@@ -333,10 +336,60 @@ def lookup_post():
         built = build_places_reports(lookup)
     else:
         built = build_reports(lookup)
-    rid = save_report(lookup, built)
+    try:
+        rid = save_report(lookup, built)
+    except Exception:
+        rid = secrets.token_urlsafe(8).replace("-", "").replace("_", "")[:12]
     if lookup.get("places_mode"):
-        remember_places_view(rid, lookup, built)
-    return redirect(url_for("teaser", rid=rid))
+        token = pack_link(places_link_view(lookup, rid))
+        remember_places_view(token, lookup, built)
+    else:
+        token = pack_link(view_from_lookup(lookup, rid))
+    return redirect(url_for("teaser", rid=token))
+
+
+def record_for(rid: str) -> dict | None:
+    """Sqlite while this deploy still has the row; otherwise the signed link."""
+    view = unpack_link(rid)
+    if view and view.get("places_mode"):
+        # The link holds place IDs only. Listing fields are fetched again below.
+        return {
+            "id": view.get("id") or "",
+            "created_at": view.get("queried_at") or "",
+            "input": view.get("user_input") or {},
+            "lookup": {"places_mode": True, "raw": {"places_mode": True, "thin": True, "bullets": []}},
+            "teaser": dict(PLACES_STORED),
+            "full": dict(PLACES_STORED),
+            "unlocked": False,
+            "places_mode": True,
+            "stored": {
+                "user_input": view.get("user_input") or {},
+                "subject_place_id": view.get("subject_place_id") or "",
+                "competitor_place_ids": view.get("competitor_place_ids") or [],
+                "outcome": view.get("outcome") or "",
+            },
+        }
+    if view:
+        stored = load_report(str(view.get("id") or ""))
+        if stored and not stored.get("places_mode"):
+            return stored
+        lookup = lookup_from_view(view)
+        built = build_reports(lookup)
+        return {
+            "id": view.get("id") or "",
+            "created_at": lookup.get("queried_at") or "",
+            "input": lookup.get("input") or {},
+            "lookup": lookup,
+            "teaser": built["teaser"],
+            "full": built["full"],
+            "unlocked": False,
+        }
+    return load_report(rid)
+
+
+def expired_page(prefill: str = ""):
+    q = (prefill or request.args.get("q") or "").strip()
+    return render_template("expired.html", prefill=q), 404
 
 
 def _places_unavailable(message: str):
@@ -346,9 +399,9 @@ def _places_unavailable(message: str):
 @app.get("/r/<rid>")
 @app.get("/teaser/<rid>")
 def teaser(rid: str):
-    rec = load_report(rid)
+    rec = record_for(rid)
     if not rec:
-        abort(404)
+        return expired_page()
     if rec.get("places_mode"):
         cached = places_cache_get(rid)
         if cached:
@@ -422,7 +475,7 @@ def is_unlocked(rec: dict) -> bool:
 @app.get("/pay/<rid>")
 def pay(rid: str | None = None):
     rid = rid or (request.args.get("report") or "").strip()
-    rec = load_report(rid) if rid else None
+    rec = record_for(rid) if rid else None
     pay_href = None
     if payment_connected() and rec:
         base = stripe_url()
@@ -449,9 +502,41 @@ def health():
     }
 
 
+@app.get("/favicon.ico")
+def favicon_ico():
+    return send_from_directory(app.static_folder, "favicon.ico")
+
+
+SITEMAP_ENDPOINTS = (
+    "landing",
+    "page_what_is",
+    "legal",
+    "pay",
+    "page_suspended",
+    "page_disappear",
+    "page_hours",
+    "page_audit_free",
+)
+
+
+@app.get("/sitemap.xml")
+def sitemap_xml():
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for endpoint in SITEMAP_ENDPOINTS:
+        loc = escape(url_for(endpoint, _external=True))
+        lines.append(f"  <url><loc>{loc}</loc></url>")
+    lines.append("</urlset>")
+    return "\n".join(lines) + "\n", 200, {"Content-Type": "application/xml; charset=utf-8"}
+
+
 @app.get("/robots.txt")
 def robots():
-    return "User-agent: *\nAllow: /\n", 200, {"Content-Type": "text/plain"}
+    sitemap = url_for("sitemap_xml", _external=True)
+    body = f"User-agent: *\nAllow: /\n\nSitemap: {sitemap}\n"
+    return body, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 
 def main():

@@ -25,6 +25,7 @@ from places import (
     select_gaps,
 )
 from places_lookup import persistable_record, refetch_places, run_places_lookup
+from result_link import unpack_link
 
 RODAN_URL = (
     "https://www.google.com/maps/place/Rodan+Heating+and+Air/@34.2087835,-118.9084397,10z/data="
@@ -428,10 +429,16 @@ class StorageTests(EnvCase):
             posted = client.post("/lookup", data={"q": "Rodan Heating and Air, Camarillo"})
         self.assertEqual(posted.status_code, 302)
         location = posted.headers["Location"]
-        self.assertNotIn(SECRET_SITE, location)
-        self.assertNotIn(SECRET_PROVIDER, location)
-        self.assertNotIn("userRatingCount", location)
-        self.assertRegex(location, r"/(r|teaser)/[A-Za-z0-9_-]+$")
+        token = location.rstrip("/").split("/")[-1]
+        view = unpack_link(token)
+        self.assertIsNotNone(view)
+        self.assertTrue(view.get("places_mode"))
+        packed = json.dumps(view)
+        self.assertNotIn(SECRET_SITE, packed)
+        self.assertNotIn(SECRET_PROVIDER, packed)
+        self.assertNotIn(SECRET_STREET, packed)
+        self.assertNotIn(str(SECRET_REVIEWS), packed)
+        self.assertEqual(view.get("listing"), {})
         stored = self.db.read_text(encoding="utf-8", errors="replace")
         self.assertIn("ChIJsubject", stored)
         self.assertNotIn(SECRET_SITE, stored)

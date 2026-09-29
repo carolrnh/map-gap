@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Why isn’t my HVAC or plumbing shop showing up on Google Maps?{% endblock %}
-{% block description %}Paste your Google listing. See 3 things the shops above you have that you don’t. Free check for HVAC and plumbing shops. Full check $195. Listing rebuild $397.{% endblock %}
+{% block description %}Paste your Google listing. See 3 things the shops above you have that you don’t. Free check for HVAC and plumbing shops. Competitor report $195. Listing rebuild $397.{% endblock %}
 {% block og_title %}Why isn’t my HVAC or plumbing shop showing up on Google Maps?{% endblock %}
-{% block og_description %}Paste your Google listing. See 3 things the shops above you have that you don’t. Free check. Full check $195. Listing rebuild $397.{% endblock %}
+{% block og_description %}Paste your Google listing. See 3 things the shops above you have that you don’t. Free check. Competitor report $195. Listing rebuild $397.{% endblock %}
 {% block main %}
 <section class="hero">
   <h1>Why isn’t my HVAC or plumbing shop showing up on Google Maps?</h1>
-  <p class="lede">Paste your Google listing. In about a minute you’ll see 3 things the shops above you have that you don’t. Free, no login.</p>
+  <p class="lede">Paste your Google listing. In under a minute you’ll see 3 things the shops above you have that you don’t. Free, no login.</p>
 </section>
 
 <section class="card lookup" id="lookup">
@@ -14,20 +14,20 @@
   <form method="post" action="{{ url_for('lookup_post') }}" id="lookup-form">
     <label for="q">Google Business URL, or shop name + city</label>
     <input id="q" name="q" type="text" required autocomplete="off"
-           placeholder="https://maps.google.com/… or Summit Heating, Columbus"
+           placeholder="Name, City or Maps link"
            value="{{ (form.q if form else '') }}">
     <button class="btn" type="submit" id="go">Show my 3 free gaps</button>
     <p class="hint">Free. No login.</p>
   </form>
 </section>
 
-<p>If Google <em>suspended</em> the listing, this check will not get it back. That’s an appeal to Google. <a href="{{ url_for('page_suspended') }}">Suspension is Google’s appeal</a>.</p>
+<p>If Google <em>suspended</em> the listing, this check will not get it back. That’s an appeal to Google. <a class="tap-link" href="{{ url_for('page_suspended') }}">Suspension is Google’s appeal</a>.</p>
 
 <h2>How it works</h2>
 <ol class="steps">
   <li>Paste the listing.</li>
   <li>See 3 things the shops above you have, free.</li>
-  <li>Get the full check ($195): you vs the 3 shops Google shows first, and what to fix this week.</li>
+  <li>Get the competitor report ($195): you vs the 3 shops Google shows first, and what to fix this week.</li>
 </ol>
 
 <section class="card pricing" id="pricing">
@@ -38,15 +38,16 @@
       <dd>Three things the shops above you have that you don’t, read from the public listing.</dd>
     </div>
     <div>
-      <dt>Full check — ${{ price }}</dt>
+      <dt>Competitor report — ${{ price }}</dt>
       <dd>A one-page teardown of you vs the 3 shops Google shows first: categories they have that you don’t, how fast they get reviews vs you, whether anyone is posting, and which services you left blank. Then a this-week vs later list. You apply the changes.</dd>
     </div>
     {# TODO: Carol will add a sample report here (fake shop, real format). Do not invent one. #}
     <div>
       <dt>Listing rebuild — $397</dt>
-      <dd>After the full check: a category list to add yourself, services copy (2–3 sentences each), 8 weeks of Google posts (first 4 weeks written), and review-reply templates. Still your login.</dd>
+      <dd>After the competitor report: a category list to add yourself, services copy (2–3 sentences each), 8 weeks of Google posts (first 4 weeks written), and review-reply templates. Still your login.</dd>
     </div>
   </dl>
+  <p>If the report doesn't find anything useful, reply to your receipt email for a full refund.</p>
 </section>
 
 {% include "_faq.html" %}

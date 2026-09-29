@@ -31,6 +31,16 @@ logger = logging.getLogger("mapgap.places_lookup")
 _SHORT_HOSTS = {"maps.app.goo.gl", "goo.gl", "g.page"}
 
 
+def places_link_view(result: dict, rid: str) -> dict[str, Any]:
+    """Signed-link payload. Place IDs and the visitor's input. No listing fields."""
+    stored = persistable_record(result)
+    stored["v"] = 1
+    stored["id"] = rid
+    stored["listing"] = {}
+    stored["raw"] = {"places_mode": True}
+    return stored
+
+
 def persistable_record(result: dict) -> dict[str, Any]:
     """The only Places-mode payload written to sqlite. Place IDs and the visitor's input."""
     user = result.get("user_input") or {}

@@ -1,22 +1,22 @@
 {% extends "base.html" %}
-{% block title %}Map Gap — Google Maps audit for HVAC and plumbing (not mapgaps.com){% endblock %}
-{% block description %}Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops: free check of 3 things the shops above you have, full check $195. Not mapgaps.com. Not MAPGAPS protein software.{% endblock %}
-{% block og_title %}Map Gap — Google Maps audit for HVAC and plumbing (not mapgaps.com){% endblock %}
-{% block og_description %}Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops. Free check. Full check $195. Not mapgaps.com.{% endblock %}
+{% block title %}Map Gap — Google Maps checkup for HVAC and plumbing (not mapgaps.com){% endblock %}
+{% block description %}Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops: free check of 3 things the shops above you have, competitor report $195. Not mapgaps.com. Not MAPGAPS protein software.{% endblock %}
+{% block og_title %}Map Gap — Google Maps checkup for HVAC and plumbing (not mapgaps.com){% endblock %}
+{% block og_description %}Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops. Free check. Competitor report $195. Not mapgaps.com.{% endblock %}
 {% block extra_head %}
 <script type="application/ld+json">{{ faq_ld | tojson }}</script>
 {% endblock %}
 {% block main %}
 <section class="hero">
-  <h1>Map Gap — Google Maps audit for HVAC and plumbing (not mapgaps.com)</h1>
-  <p class="name-own">Map Gap at map-gap.onrender.com is an HVAC and plumbing Google Maps audit — not mapgaps.com.</p>
-  <p class="lede">Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops: a free check of 3 things the shops above you have, and a $195 full check. You keep the listing.</p>
+  <h1>Map Gap — Google Maps checkup for HVAC and plumbing (not mapgaps.com)</h1>
+  <p class="name-own">Map Gap at map-gap.onrender.com is an HVAC and plumbing Google Maps checkup — not mapgaps.com.</p>
+  <p class="lede">Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops: a free check of 3 things the shops above you have, and a $195 competitor report. You keep the listing.</p>
   <p>If you landed here looking for mapgaps.com or bioinformatics MAPGAPS, that is a different product. This Map Gap is a Google Maps checkup for HVAC and plumbing.</p>
 </section>
 
 <section>
   <h2>What Map Gap is</h2>
-  <p>A Google Maps checkup for US HVAC and plumbing shops. You paste a live Google listing. You get a free check of 3 things the shops above you have. The full check is $195 if you want you vs the shops Google shows first: categories, how fast they get reviews, posts, services, and a this-week vs later list. You apply the changes. You keep the listing.</p>
+  <p>A Google Maps checkup for US HVAC and plumbing shops. You paste a live Google listing. You get a free check of 3 things the shops above you have. The competitor report is $195 if you want you vs the shops Google shows first: categories, how fast they get reviews, posts, services, and a this-week vs later list. You apply the changes. You keep the listing.</p>
 </section>
 
 <section>
@@ -40,16 +40,17 @@
       <dd>Three things the shops above you have that you don’t, read from the public listing.</dd>
     </div>
     <div>
-      <dt>Full check — ${{ price }}</dt>
+      <dt>Competitor report — ${{ price }}</dt>
       <dd>A one-page teardown of you vs the 3 shops Google shows first: categories, how fast they get reviews, posts, services, and a this-week vs later list. You apply the changes.</dd>
     </div>
     {# TODO: Carol will add a sample report here (fake shop, real format). Do not invent one. #}
     <div>
       <dt>Listing rebuild — $397</dt>
-      <dd>After the full check: a category list to add yourself, services copy (2–3 sentences each), 8 weeks of Google posts (first 4 weeks written), and review-reply templates. Still your login.</dd>
+      <dd>After the competitor report: a category list to add yourself, services copy (2–3 sentences each), 8 weeks of Google posts (first 4 weeks written), and review-reply templates. Still your login.</dd>
     </div>
   </dl>
   <p>There is no monthly plan on this site.</p>
+  <p>If the report doesn't find anything useful, reply to your receipt email for a full refund.</p>
 </section>
 
 <section>
@@ -57,7 +58,7 @@
   <ol class="steps">
     <li>Paste the listing on the homepage.</li>
     <li>See 3 things the shops above you have, free.</li>
-    <li>Get the full check ($195): you vs the 3 shops Google shows first, and what to fix this week.</li>
+    <li>Get the competitor report ($195): you vs the 3 shops Google shows first, and what to fix this week.</li>
   </ol>
 </section>
 
@@ -76,5 +77,4 @@
     {% endfor %}
   </dl>
 </section>
-<p class="legal-line">You keep the listing. No ranking is guaranteed.</p>
 {% endblock %}

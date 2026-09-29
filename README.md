@@ -2,7 +2,7 @@
 
 Self-serve Google Maps checkup for US HVAC and plumbing owners.
 
-Flow: landing → business name + city **or** Google listing URL → free check (3 things the shops above you have) → **$195** full check. After pay, thank-you may offer **$397 Listing Rebuild**. There is **no monthly plan** on this site.
+Flow: landing → business name + city **or** Google listing URL → free check (3 things the shops above you have) → **$195** competitor report. After pay, thank-you may offer **$397 Listing Rebuild**. There is **no monthly plan** on this site.
 
 The $195 figure is the label in `report.PRICE`. The amount Stripe charges is set on the Payment Link in Stripe, not in this repo.
 
@@ -54,7 +54,7 @@ In Stripe, set the Payment Link after-payment URL to `http://127.0.0.1:8787/than
 |---|---|
 | `/` | Landing + lookup |
 | `/what-is-map-gap` | Name-ownership: this Map Gap vs mapgaps.com / MAPGAPS protein |
-| `POST /lookup` → `/r/<id>` | Free check (NAP, source log, UNKNOWN reviews) + $195 paywall |
+| `POST /lookup` → `/teaser/<signed link>` | Free check. The link holds the public result so it still opens after a redeploy. |
 | `/pay/<id>` | $195 checkout stub |
 | `/thanks` | Post-pay drop + $397 Listing Rebuild |
 | `/legal` | Legal / hard nos |
@@ -62,6 +62,8 @@ In Stripe, set the Payment Link after-payment URL to `http://127.0.0.1:8787/than
 If public data is thin, the check still lists what we could and could not fetch. Review counts stay UNKNOWN. The $195 button stays hidden on a thin result, and reads **Payment not connected yet** until a Stripe Payment Link is set. It does not fake a charge.
 
 ## Data
+
+Saved checks are signed into the result URL (`result_link.py`). Render’s free tier wipes the disk on deploy, so a sqlite id alone 404s. The server still keeps a sqlite copy until the next deploy. A missing or old link shows “This check expired” and “Run it again (free, usually under a minute).” Payment unlock is not stored in the link.
 
 - Default: OpenStreetMap Nominatim (1 request/second), plus the public page when a Google URL is pasted.
 - 90-day review velocity and Google posts stay **UNKNOWN** unless they were on that page. UNKNOWN is not zero.

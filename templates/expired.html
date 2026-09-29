@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}This check expired — Map Gap{% endblock %}
+{% block description %}Run it again (free, usually under a minute).{% endblock %}
+{% block robots %}noindex,follow{% endblock %}
+{% block main %}
+<section class="hero tight">
+  <h1>This check expired</h1>
+  <p class="lede">Run it again (free, usually under a minute).</p>
+</section>
+<section class="card lookup" id="lookup">
+  <form method="post" action="{{ url_for('lookup_post') }}" id="lookup-form">
+    <label for="q">Google Business URL, or shop name + city</label>
+    <input id="q" name="q" type="text" required autocomplete="off"
+           placeholder="Name, City or Maps link"
+           value="{{ prefill }}">
+    <button class="btn" type="submit" id="go">Show my 3 free gaps</button>
+    <p class="hint">Free. No login.</p>
+  </form>
+</section>
+{% endblock %}
