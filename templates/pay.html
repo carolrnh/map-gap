@@ -1,20 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Full check — ${{ price }} — Map Gap{% endblock %}
+{% block title %}Competitor report — ${{ price }} — Map Gap{% endblock %}
+{% block og_title %}Competitor report — ${{ price }} — Map Gap{% endblock %}
 {% block main %}
 <section class="hero tight">
   <p class="kicker">Pay once</p>
-  <h1>Full check — ${{ price }}</h1>
-  <p class="lede">Pay once. Get the one-pager and the sheet. You keep the listing.</p>
+  <h1>Competitor report — ${{ price }}</h1>
+  <p class="lede">Pay once. You get the written report on the thank-you page. You keep the listing.</p>
 </section>
 
 <div class="card">
   <h2>What’s included</h2>
   <ul>
-    <li>You vs the 3 shops Google shows first (categories, review speed, posts, services)</li>
+    <li>You vs the 3 shops Google shows first (categories, how fast they get reviews, posts, services)</li>
     <li>This-week vs later fix list</li>
-    <li>Delivery on the thank-you page after payment (this version does not email the file)</li>
+    <li>The thank-you page shows the report after payment. We do not email it.</li>
   </ul>
-  <p>You keep the listing. No ranking is guaranteed.</p>
+  <p>If the report doesn't find anything useful, reply to your receipt email for a full refund.</p>
 
   {% if pay_href %}
     <p><a class="btn" href="{{ pay_href }}">Pay ${{ price }}</a></p>

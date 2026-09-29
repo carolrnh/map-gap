@@ -1,7 +1,7 @@
 <form method="post" action="{{ url_for('lookup_post') }}" class="lookup-form">
   <label for="{{ fid|default('q') }}">Google Business URL, or shop name + city</label>
   <input id="{{ fid|default('q') }}" name="q" type="text" required autocomplete="off"
-         placeholder="https://maps.google.com/… or Summit Heating, Columbus">
+         placeholder="Name, City or Maps link">
   <button class="btn" type="submit">Show my 3 free gaps</button>
   <p class="hint">Free. No login. HVAC and plumbing shops.</p>
 </form>

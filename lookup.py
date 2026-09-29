@@ -1107,7 +1107,7 @@ def lookup(raw: str) -> dict[str, Any]:
         result["unlock"] = False
         result["thin_code"] = "no_competitors"
         result["thin_reason"] = (
-            "Not enough other public shops to compare. The full check stays hidden until 3 real gaps are visible."
+            "Not enough other public shops to compare. The competitor report stays hidden until 3 real gaps are visible."
         )
         result["bullets"] = _bullets(result)
         result["missing_fields"] = _missing_fields(result)
@@ -1174,20 +1174,20 @@ def _bullets(result: dict[str, Any]) -> list[dict[str, str]]:
         n_you = google["review_dates_90d"]
         rev_body = (
             f"{comps[0].get('name', 'A competitor')} — 90-day public review dates were readable. "
-            f"You picked up {n_you} in that public snippet. Star rating is not the gap. Velocity is."
+            f"You picked up {n_you} on the page we could read. The star rating is not the difference. How fast new reviews come in is."
         )
     elif total is not None:
         source = subject.get("review_count_source") or "A public page"
         rev_body = (
             f"{source} shows {total} reviews total for you. "
             "A 90-day velocity was not on the page we could read, so it is not shown. "
-            "Star rating is not the gap. Velocity is. We will not guess the 90-day count."
+            "The star rating is not the difference. How fast new reviews come in is. We will not guess the 90-day count."
         )
     elif comps:
         cname = comps[0]["name"]
         rev_body = (
             f"{cname} — public pages we could read did not include 90-day review dates for you or them. "
-            "Star rating is not the gap. Velocity is. We will not invent a review count."
+            "The star rating is not the difference. How fast new reviews come in is. We will not invent a review count."
         )
     else:
         rev_body = (

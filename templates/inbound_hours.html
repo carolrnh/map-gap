@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Google Business hours wrong — fix the listing, then see if Maps still hides you{% endblock %}
-{% block description %}Wrong hours on Google Business are edited in the profile you own. If the listing is live and you still don’t show on the map, run the free check. HVAC and plumbing only. Full check $195.{% endblock %}
+{% block description %}Wrong hours on Google Business are edited in the profile you own. If the listing is live and you still don’t show on the map, run the free check. HVAC and plumbing only. Competitor report $195.{% endblock %}
 {% block og_title %}Google Business hours wrong?{% endblock %}
 {% block main %}
 <section class="hero">
@@ -11,7 +11,7 @@
 <section class="card">
   <h2>Fix hours yourself</h2>
   <p>Open Google Business Profile → Info → hours. You keep the listing. We don’t take it over.</p>
-  <p class="hint">Demand context, not a Map Gap feature: in Aug 2026, Local Services Ads moving toward Google Ads use GBP hours as source of truth; wrong hours can pause ads 24–48h (Search Engine Roundtable / Digital Applied). We do not unpause ads.</p>
+  <p class="hint">Google can use the hours on your listing for ads. Wrong hours can pause those ads for a day or two. We do not turn ads back on.</p>
 </section>
 
 <section class="card" id="lookup">
@@ -22,8 +22,8 @@
 </section>
 
 <section>
-  <h2>What the ${{ price }} full check covers (not hours)</h2>
-  <p>You vs the 3 shops Google shows first: categories, review speed, posts, services, this-week vs later. You apply the changes. We never set your hours.</p>
+  <h2>What the ${{ price }} competitor report covers (not hours)</h2>
+  <p>You vs the 3 shops Google shows first: categories, how fast they get reviews, posts, services, this-week vs later. You apply the changes. We never set your hours.</p>
 </section>
 <section class="faq">
   <h2>FAQ</h2>
@@ -36,5 +36,4 @@
     <dd>We don’t promise that. Google’s hours rules are theirs.</dd>
   </dl>
 </section>
-<p class="legal-line">You keep the listing. No ranking is guaranteed.</p>
 {% endblock %}

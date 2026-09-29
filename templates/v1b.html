@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Why isn’t my HVAC or plumbing shop showing up on Google Maps?{% endblock %}
-{% block description %}HVAC and plumbing shops paste their Google listing, see 3 things the shops above you have, and buy the full check for $195.{% endblock %}
+{% block description %}HVAC and plumbing shops paste their Google listing, see 3 things the shops above you have, and buy the competitor report for $195.{% endblock %}
 {% block og_title %}Why isn’t my HVAC or plumbing shop showing up on Google Maps?{% endblock %}
-{% block og_description %}Paste your Google listing. Free check. Full check $195. HVAC and plumbing only.{% endblock %}
+{% block og_description %}Paste your Google listing. Free check. Competitor report $195. HVAC and plumbing only.{% endblock %}
 {% block main %}
 <section class="hero">
   <h1>Why isn’t my HVAC or plumbing shop showing up on Google Maps?</h1>
-  <p class="lede">Paste your Google listing. In about a minute you’ll see 3 things the shops above you have that you don’t. Free, no login.</p>
+  <p class="lede">Paste your Google listing. Usually under a minute you’ll see 3 things the shops above you have that you don’t. Free, no login.</p>
 </section>
 
 <section class="card lookup" id="lookup">
@@ -14,7 +14,7 @@
   <form method="post" action="{{ url_for('lookup_post') }}" id="lookup-form">
     <label for="q">Google Business URL, or shop name + city</label>
     <input id="q" name="q" type="text" required autocomplete="off"
-           placeholder="https://maps.google.com/… or Summit Heating, Columbus"
+           placeholder="Name, City or Maps link"
            value="{{ (form.q if form else '') }}">
     <button class="btn" type="submit" id="go">Show my 3 free gaps</button>
     <p class="hint">Free. No login.</p>
@@ -25,7 +25,7 @@
 <ol class="steps">
   <li>Paste the listing.</li>
   <li>See 3 things the shops above you have, free.</li>
-  <li>Get the full check ($195): you vs the 3 shops Google shows first, and what to fix this week.</li>
+  <li>Get the competitor report ($195): you vs the 3 shops Google shows first, and what to fix this week.</li>
 </ol>
 
 {% include "_faq.html" %}
