@@ -1,26 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Three public reasons you lose the map pack — Map Gap{% endblock %}
-{% block description %}Free public-data teaser. Review counts only if observed. Full Map Pack Report $197.{% endblock %}
+{% set raw = rec.lookup.raw %}
+{% set listing = rec.lookup.listing %}
+{% set ident_name = teaser.display_name if teaser.display_name and teaser.display_name != unknown else '' %}
+{% set ident_city = teaser.city if teaser.city and teaser.city != unknown else '' %}
+{% set ident_state = listing.state or '' %}
+{% set ident_cat = teaser.nap.category if teaser.nap.category and teaser.nap.category != unknown else '' %}
+{% set maps_url = rec.lookup.maps_url or '' %}
+{% set missing = raw.missing_fields or [] %}
+{% set retry_q = rec.lookup.retry_q or '' %}
+{% set unread = thin or not teaser.found or not vertical_ok %}
+{% block title %}{% if unread and ident_name %}We couldn't read enough of {{ ident_name }}'s public listing — Map Gap{% elif unread %}We couldn't find that listing — Map Gap{% else %}Three public reasons you lose the map pack — Map Gap{% endif %}{% endblock %}
+{% block description %}Free public-data check. Review counts only if observed. Full check ${{ price }}.{% endblock %}
 {% block main %}
 <section class="hero tight">
-  <p class="kicker">Free teaser · public listing data</p>
-  <h1>Three public reasons you lose the map pack</h1>
-  <p class="lede">
-    {% if teaser.display_name and teaser.display_name != unknown %}{{ teaser.display_name }}{% endif %}
-    {% if teaser.city and teaser.city != unknown %} · {{ teaser.city }}{% endif %}
-  </p>
+  {% if unread %}
+    {% if ident_name %}
+      <h1>We couldn't read enough of {{ ident_name }}'s public listing</h1>
+    {% else %}
+      <h1>We couldn't find that listing.</h1>
+    {% endif %}
+    <p class="lede">
+      {% if ident_city %}{{ ident_city }}{% if ident_state %}, {{ ident_state }}{% endif %}{% endif %}
+      {% if ident_cat %}{% if ident_city %} · {% endif %}{{ ident_cat }}{% endif %}
+      {% if listing.service_area %}{% if ident_city or ident_cat %} · {% endif %}Service-area listing, no street address shown{% endif %}
+      {% if maps_url %}{% if ident_city or ident_cat or listing.service_area %} · {% endif %}<a href="{{ maps_url }}" rel="noopener noreferrer">View on Google Maps</a>{% endif %}
+    </p>
+  {% else %}
+    <p class="kicker">Free check · public listing data</p>
+    <h1>Three public reasons you lose the map pack</h1>
+    <p class="lede">
+      {% if ident_name %}{{ ident_name }}{% endif %}
+      {% if ident_city %} · {{ ident_city }}{% endif %}
+    </p>
+  {% endif %}
 </section>
 
 {% if not vertical_ok %}
-  <div class="card banner unk">
-    <p>{{ thin_reason or "This page is HVAC and plumbing only." }}</p>
-    <p><a href="{{ url_for('landing') }}">Try an HVAC or plumbing listing</a></p>
+  <div class="card result-card">
+    <p class="result-lead">{{ thin_reason or "This page is HVAC and plumbing only." }}</p>
+    {% include "_check_again.html" %}
+  </div>
+{% elif not teaser.found %}
+  <div class="card result-card">
+    <p class="result-lead">Paste the link from Google Maps → Share → Copy link, or type the business name and city.</p>
+    {% include "_check_again.html" %}
   </div>
 {% elif thin %}
-  <div class="card banner unk">
-    <p>{{ thin_reason or "Not enough public map-pack data to tease. Don’t pay $197 for a guess." }}</p>
-    <p class="hint">We will not invent review counts, competitors, or a ranking. Unlock is hidden so you don’t pay for a guess.</p>
-    <p><a href="{{ url_for('landing') }}">Try another listing</a></p>
+  <div class="card result-card">
+    <p class="result-lead">We only report gaps we can see in public data.{% if missing %} For this listing we couldn't read: {% if missing|length == 1 %}{{ missing[0] }}{% else %}{{ missing[:-1]|join(', ') }} and {{ missing[-1] }}{% endif %}.{% endif %}</p>
+    <p class="result-explain">The ${{ price }} full check is only offered once we can show you 3 real gaps, so you never pay for a guess.</p>
+    {% if raw.city_source == 'map_pin' and ident_city %}
+    <p class="result-explain">The map pin is in {{ ident_city }}{% if ident_state %}, {{ ident_state }}{% endif %}. A service-area pin is often the middle of the area, not the shop. If this is the wrong city, type the right one below.</p>
+    {% elif raw.city_source == 'postcode' and ident_city %}
+    <p class="result-explain">{{ ident_city }} comes from the map pin's ZIP code, not a street address. If this is the wrong city, type the right one below.</p>
+    {% endif %}
+    {% include "_check_again.html" %}
   </div>
 {% else %}
   <ol class="bullets">
@@ -44,8 +78,11 @@
   <table class="sheet">
     <tbody>
       <tr><th>Name</th><td>{{ teaser.nap.name }}</td></tr>
-      <tr><th>Address</th><td>{{ teaser.nap.address }}</td></tr>
+      <tr><th>Address</th><td>{% if listing.service_area %}No street address on the public listing. Service-area businesses don't show one.{% else %}{{ teaser.nap.address }}{% endif %}</td></tr>
       <tr><th>Category (public label)</th><td>{{ teaser.nap.category }}</td></tr>
+      {% if teaser.nap.phone and teaser.nap.phone != unknown %}<tr><th>Phone</th><td>{{ teaser.nap.phone }}</td></tr>{% endif %}
+      {% if teaser.nap.website and teaser.nap.website != unknown %}<tr><th>Website</th><td>{{ teaser.nap.website }}</td></tr>{% endif %}
+      {% if teaser.nap.hours and teaser.nap.hours != unknown %}<tr><th>Hours</th><td>{{ teaser.nap.hours }}</td></tr>{% endif %}
       <tr>
         <th>Review count</th>
         <td>

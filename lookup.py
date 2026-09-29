@@ -4,12 +4,20 @@ Sources: OpenStreetMap Nominatim (identity + nearby HVAC/plumbing), and
 a best-effort fetch of a public Google listing URL the buyer pasted.
 
 Never invent review counts, post counts, ratings, or rankings.
-Unobserved fields stay None / UNKNOWN. Thin data hides the $197 unlock.
+Unobserved fields stay None / UNKNOWN. Thin data hides the paid unlock.
+
+Service-area listings often have no street address. A Maps place URL still
+carries the business name and a pin. The pin is not a storefront: reverse
+geocoding it can land on a neighboring street, so that street is never saved
+as the business address. When the URL or address parse does not yield a
+place, lookup falls back to business name + city (from the form, from the
+business website's public schema, or from the pin's city only).
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import re
 import ssl
 import time
@@ -18,6 +26,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from typing import Any
+
+logger = logging.getLogger("mapgap.lookup")
 
 UA = "MapGap/1.0 (self-serve HVAC plumbing teaser; public data only)"
 NOMINATIM = "https://nominatim.openstreetmap.org/search"
@@ -118,6 +128,10 @@ def parse_input(raw: str) -> dict[str, str]:
         out["url"] = url
         out["name"] = _name_from_maps_url(url)
         out["city"] = _city_from_maps_url(url)
+        lat, lon = _coords_from_maps_url(url)
+        if lat is not None and lon is not None:
+            out["lat"] = str(lat)
+            out["lon"] = str(lon)
         return out
     if "," in raw:
         name, city = raw.rsplit(",", 1)
@@ -149,8 +163,370 @@ def _name_from_maps_url(url: str) -> str:
 
 
 def _city_from_maps_url(url: str) -> str:
-    # Rarely present as a clean field. Leave empty; Nominatim fills it.
+    # Place URLs rarely include a city. Name + pin are parsed instead.
     return ""
+
+
+def _coords_from_maps_url(url: str) -> tuple[float | None, float | None]:
+    """Place pin from !3d/!4d, else the map-center @lat,lon."""
+    try:
+        u = urllib.parse.urlparse(url)
+        text = urllib.parse.unquote(u.path + "?" + u.query)
+    except Exception:
+        return None, None
+    m = re.search(r"!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)", text)
+    if not m:
+        m = re.search(r"@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)", text)
+    if not m:
+        return None, None
+    try:
+        lat, lon = float(m.group(1)), float(m.group(2))
+    except ValueError:
+        return None, None
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return None, None
+    return lat, lon
+
+
+def _preview_place_path(html: str) -> str:
+    m = re.search(r'href="(/maps/preview/place\?[^"]+)"', html or "")
+    if not m:
+        return ""
+    return m.group(1).replace("&amp;", "&")
+
+
+def _walk(node: Any):
+    if isinstance(node, list):
+        yield node
+        for item in node:
+            yield from _walk(item)
+    elif isinstance(node, dict):
+        for item in node.values():
+            yield from _walk(item)
+
+
+_WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+
+def _hours_from_preview(data: Any) -> str:
+    by_day: dict[str, str] = {}
+    for node in _walk(data):
+        if not node or not isinstance(node[0], str) or node[0] not in _WEEKDAYS or len(node) < 4:
+            continue
+        slot = node[3]
+        label = ""
+        if isinstance(slot, list) and slot:
+            first = slot[0]
+            if isinstance(first, list) and first and isinstance(first[0], str):
+                label = first[0]
+            elif isinstance(first, str):
+                label = first
+        label = label.replace("\u202f", " ").strip()
+        if label and node[0] not in by_day:
+            by_day[node[0]] = label
+    if len(by_day) < 5:
+        return ""
+    ordered = [(day, by_day[day]) for day in _WEEKDAYS if day in by_day]
+    chunks: list[str] = []
+    i = 0
+    while i < len(ordered):
+        j = i
+        while j + 1 < len(ordered) and ordered[j + 1][1] == ordered[i][1]:
+            j += 1
+        start, label = ordered[i]
+        end = ordered[j][0]
+        span = start[:3] if start == end else f"{start[:3]}–{end[:3]}"
+        chunks.append(f"{span} {label}")
+        i = j + 1
+    return "; ".join(chunks)
+
+
+def _parse_preview_place(body: str) -> dict[str, Any] | None:
+    """Pull only fields that are actually present in a public Maps preview."""
+    raw = (body or "").strip()
+    if raw.startswith(")]}'"):
+        raw = raw.split("\n", 1)[-1]
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    fields: dict[str, Any] = {
+        "name": None,
+        "category": None,
+        "categories": [],
+        "phone": None,
+        "website": None,
+        "hours": None,
+        "address": None,
+        "lat": None,
+        "lon": None,
+        "service_area": None,
+        "posts_seen": None,
+    }
+    categories: list[str] = []
+    for node in _walk(data):
+        if (
+            len(node) == 2
+            and isinstance(node[0], str)
+            and isinstance(node[1], str)
+            and "gstatic.com/images/icons" in node[0]
+        ):
+            icon = node[0].rsplit("/", 1)[-1]
+            label = node[1].strip()
+            if not label:
+                continue
+            if icon.startswith("storefront_") and not fields["name"]:
+                fields["name"] = label
+            elif icon.startswith("category_"):
+                if label not in categories:
+                    categories.append(label)
+            elif icon.startswith("call_") and not fields["phone"]:
+                fields["phone"] = label
+            elif icon.startswith("public_") and label.startswith("http") and not fields["website"]:
+                fields["website"] = label.split("?", 1)[0]
+            elif icon.startswith("location_on_") and not fields["address"]:
+                fields["address"] = label
+            elif icon.startswith("schedule_") and not fields["hours"]:
+                fields["hours"] = label.replace("\u202f", " ")
+        if (
+            len(node) == 4
+            and node[0] is None
+            and node[1] is None
+            and isinstance(node[2], (int, float))
+            and isinstance(node[3], (int, float))
+            and fields["lat"] is None
+            and 24 <= float(node[2]) <= 50
+            and -125 <= float(node[3]) <= -66
+        ):
+            fields["lat"] = float(node[2])
+            fields["lon"] = float(node[3])
+    if categories:
+        fields["categories"] = categories
+        fields["category"] = categories[0]
+    weekly = _hours_from_preview(data)
+    if weekly:
+        fields["hours"] = weekly
+    post_ids = set(re.findall(r"localPosts(?:%2F|/)(\d+)", raw))
+    if post_ids:
+        fields["posts_seen"] = len(post_ids)
+    if not any(fields.get(k) for k in ("name", "category", "phone", "website", "address")):
+        return None
+    fields["service_area"] = bool(fields["name"]) and not fields["address"]
+    return fields
+
+
+def _city_state_from_address(address: str) -> tuple[str, str]:
+    parts = [p.strip() for p in (address or "").split(",") if p.strip()]
+    if len(parts) < 2:
+        return "", ""
+    state = ""
+    m = re.match(r"([A-Z]{2})\b", parts[-1])
+    if m:
+        state = m.group(1)
+    city = parts[-2]
+    if any(ch.isdigit() for ch in city):
+        return "", state
+    return city, state
+
+
+def _website_identity(url: str) -> dict[str, Any]:
+    """City and name from public schema.org. A missing street is kept missing."""
+    out: dict[str, Any] = {
+        "ok": False,
+        "name": "",
+        "city": "",
+        "state": "",
+        "street": "",
+        "phone": "",
+        "review_count": None,
+    }
+    if not url:
+        return out
+    status, body, _final = _get(url, accept="text/html,application/xhtml+xml")
+    if status != 200 or not body:
+        return out
+    out["ok"] = True
+    re_script = re.compile(
+        r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+        re.I | re.S,
+    )
+    best: dict[str, Any] | None = None
+    best_score = -1
+    for m in re_script.finditer(body):
+        try:
+            data = json.loads(m.group(1).strip())
+        except json.JSONDecodeError:
+            continue
+        nodes: list[Any] = []
+
+        def walk(n: Any) -> None:
+            if isinstance(n, list):
+                for x in n:
+                    walk(x)
+            elif isinstance(n, dict):
+                nodes.append(n)
+                if "@graph" in n:
+                    walk(n["@graph"])
+
+        walk(data)
+        for n in nodes:
+            addr = n.get("address") if isinstance(n.get("address"), dict) else {}
+            locality = str(addr.get("addressLocality") or "").strip()
+            if not locality and not n.get("name"):
+                continue
+            score = (3 if locality else 0) + (2 if addr.get("streetAddress") else 0) + (1 if n.get("name") else 0)
+            if score > best_score:
+                best_score = score
+                best = n
+    if not best:
+        return out
+    addr = best.get("address") if isinstance(best.get("address"), dict) else {}
+    out["name"] = str(best.get("name") or "").strip()
+    out["city"] = str(addr.get("addressLocality") or "").strip()
+    out["state"] = str(addr.get("addressRegion") or "").strip()
+    out["street"] = str(addr.get("streetAddress") or "").strip()
+    out["phone"] = str(best.get("telephone") or "").strip()
+    ar = best.get("aggregateRating") if isinstance(best.get("aggregateRating"), dict) else None
+    if ar and ar.get("reviewCount") not in (None, ""):
+        try:
+            out["review_count"] = int(str(ar["reviewCount"]).replace(",", ""))
+        except ValueError:
+            pass
+    return out
+
+
+def _reverse_locality(lat: float, lon: float) -> dict[str, str]:
+    """City only. The street under a service-area pin is not the business address."""
+    url = NOMINATIM_REVERSE + "?" + urllib.parse.urlencode(
+        {"lat": str(lat), "lon": str(lon), "format": "jsonv2", "addressdetails": "1"}
+    )
+    status, body, _ = _get(url)
+    time.sleep(1.05)
+    out = {"city": "", "state": "", "country_code": "", "postcode": ""}
+    if status != 200 or not body:
+        return out
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError:
+        return out
+    if not isinstance(data, dict):
+        return out
+    addr = data.get("address") or {}
+    out["country_code"] = str(addr.get("country_code") or "").lower()
+    out["state"] = str(addr.get("state") or "")
+    out["postcode"] = str(addr.get("postcode") or "")
+    out["city"] = _locality_name(addr)
+    return out
+
+
+def _locality_name(addr: dict[str, Any]) -> str:
+    for key in ("city", "town", "village", "hamlet", "municipality"):
+        if addr.get(key):
+            return str(addr[key])
+    return ""
+
+
+def _city_from_postcode(postcode: str) -> dict[str, str]:
+    """A service-area pin often lands outside a city polygon but inside a ZIP."""
+    hits = _nominatim({"postalcode": postcode, "limit": "1"})
+    time.sleep(1.05)
+    if not hits:
+        return {"city": "", "state": ""}
+    hit = hits[0]
+    addr = hit.get("address") or {}
+    return {"city": _locality_name(addr), "state": str(addr.get("state") or "")}
+
+
+def _hit_has_street(hit: dict[str, Any]) -> bool:
+    addr = hit.get("address") or {}
+    return bool(addr.get("house_number") or addr.get("road") or addr.get("street"))
+
+
+def _subject_from_observed(
+    name: str,
+    city: str,
+    state: str,
+    google: dict[str, Any] | None,
+    site: dict[str, Any] | None,
+) -> dict[str, Any]:
+    g = google or {}
+    s = site or {}
+    category = g.get("category") or ""
+    fake = {
+        "name": name,
+        "type": "",
+        "display_name": name,
+        "category": category,
+        "extratags": {},
+        "address": {},
+    }
+    vert = _is_hvac_plumbing(fake, f"{name} {category} {city}")
+    address = g.get("address") or ""
+    if g.get("service_area"):
+        address = ""
+    return {
+        "name": name,
+        "display_name": name,
+        "address": address,
+        "city": city,
+        "state": state or "",
+        "postcode": "",
+        "phone": g.get("phone") or s.get("phone") or "",
+        "website": g.get("website") or "",
+        "hours": g.get("hours") or "",
+        "lat": g.get("lat"),
+        "lon": g.get("lon"),
+        "osm_type": None,
+        "osm_category": None,
+        "osm_id": None,
+        "osm_kind": None,
+        "tags": [],
+        "country_code": "us",
+        "source": "public_listing",
+        "vertical": vert,
+        "google_category": category or None,
+        "service_area": bool(g.get("service_area")),
+        "review_count_total": g.get("review_count_total"),
+        "review_count_source": "public Maps preview" if g.get("review_count_total") is not None else "",
+        "rating": g.get("rating"),
+    }
+
+
+def _missing_fields(result: dict[str, Any]) -> list[str]:
+    subject = result.get("subject") or {}
+    google = result.get("google") or {}
+    missing: list[str] = []
+    category = subject.get("google_category") or subject.get("osm_type") or subject.get("tags")
+    if not category:
+        missing.append("primary category")
+    if google.get("review_count_total") is None and subject.get("review_count_total") is None:
+        missing.append("review count")
+    if not (subject.get("city") or (result.get("input") or {}).get("city")):
+        missing.append("city")
+    if not result.get("competitors"):
+        missing.append("other shops to compare")
+    if subject.get("service_area"):
+        return missing
+    if subject and not subject.get("address") and not subject.get("service_area"):
+        missing.append("street address")
+    return missing
+
+
+def _finish(result: dict[str, Any]) -> dict[str, Any]:
+    if not result.get("missing_fields"):
+        result["missing_fields"] = _missing_fields(result) if result.get("thin") else []
+    subject = result.get("subject") or {}
+    parsed = result.get("input") or {}
+    logger.warning(
+        "lookup thin_code=%s name=%r city=%r city_source=%s service_area=%s trace=%s",
+        result.get("thin_code") or ("ok" if result.get("ok") else "unk"),
+        subject.get("name") or parsed.get("name") or "",
+        subject.get("city") or parsed.get("city") or "",
+        result.get("city_source") or "",
+        subject.get("service_area"),
+        ",".join(result.get("trace") or []),
+    )
+    return result
 
 
 def _nominatim(params: dict[str, str]) -> list[dict[str, Any]]:
@@ -296,12 +672,28 @@ def _place(hit: dict[str, Any], source: str) -> dict[str, Any]:
 
 
 def _google_enrich(url: str) -> dict[str, Any]:
-    """Best-effort public page parse. Missing fields stay None. Never guess counts."""
+    """Best-effort public page parse. Missing fields stay None. Never guess counts.
+
+    Maps HTML is a script shell with no JSON-LD. The page links a public preview
+    payload that does include the name, category, phone, website, and hours.
+    "Enable JavaScript" in that shell is the normal noscript line, not a block,
+    so it does not by itself discard the preview.
+    """
     out: dict[str, Any] = {
         "fetched": False,
+        "preview": False,
         "final_url": url,
         "name": None,
         "category": None,
+        "categories": [],
+        "phone": None,
+        "website": None,
+        "hours": None,
+        "address": None,
+        "service_area": None,
+        "lat": None,
+        "lon": None,
+        "posts_seen": None,
         "review_count_total": None,
         "rating": None,
         "review_dates_90d": None,
@@ -316,16 +708,40 @@ def _google_enrich(url: str) -> dict[str, Any]:
         out["note"] = f"Public Google page not readable (HTTP {status})."
         return out
     low = body[:24000].lower()
-    if any(
+    blocked = any(
         s in low
         for s in (
             "before you continue",
             "unusual traffic",
-            "enable javascript",
             "consent.google",
             "detected unusual traffic",
         )
-    ):
+    )
+    preview_path = _preview_place_path(body)
+    if preview_path and not blocked:
+        pstatus, pbody, _pfinal = _get(
+            "https://www.google.com" + preview_path,
+            accept="application/json,text/plain,*/*",
+        )
+        parsed = _parse_preview_place(pbody) if pstatus == 200 else None
+        if parsed:
+            out.update(parsed)
+            out["fetched"] = True
+            out["preview"] = True
+            out["final_url"] = final
+            bits = [k for k in ("name", "category", "phone", "website", "hours", "address") if parsed.get(k)]
+            if parsed.get("service_area"):
+                bits.append("no street address (service-area listing)")
+            if parsed.get("review_count_total") is None:
+                out["note"] = (
+                    "Public Maps preview had "
+                    + (", ".join(bits) if bits else "no listing fields")
+                    + ". Review count was not in that response, so it is not shown."
+                )
+            else:
+                out["note"] = "Public Maps preview. Only fields present in that response are shown."
+            return out
+    if blocked or "enable javascript" in low and not preview_path:
         out["note"] = "Public Google page returned a consent or block screen. Fields not observed."
         return out
     out["fetched"] = True
@@ -431,9 +847,11 @@ def _best_hit(hits, name, city):
 
 def lookup(raw: str) -> dict[str, Any]:
     parsed = parse_input(raw)
+    city_from_input = (parsed.get("city") or "").strip()
     result: dict[str, Any] = {
         "ok": False,
         "thin": True,
+        "thin_code": "",
         "thin_reason": "",
         "vertical_ok": True,
         "input": parsed,
@@ -442,80 +860,213 @@ def lookup(raw: str) -> dict[str, Any]:
         "google": None,
         "sources": [],
         "bullets": [],
+        "trace": [],
+        "city_source": "input" if city_from_input else "",
+        "missing_fields": [],
         "service_phrase": "HVAC / plumbing",
         "observed_at": datetime.now(timezone.utc).isoformat(),
         "unlock": False,
+        "maps_url": parsed.get("url") or "",
     }
     if not parsed["raw"]:
+        result["thin_code"] = "empty_input"
         result["thin_reason"] = "Paste a Google listing URL, or a shop name and city."
         result["bullets"] = []
-        return result
+        return _finish(result)
 
-    # 1) Identity via Nominatim
-    q = parsed["query"] or parsed["raw"]
-    if parsed["name"] and parsed["city"]:
-        q = f"{parsed['name']} {parsed['city']} United States"
-    elif parsed["name"]:
-        q = f"{parsed['name']} United States"
-    hits = _nominatim({"q": q, "limit": "8"})
-    result["sources"].append("openstreetmap nominatim")
-    time.sleep(1.05)
-
-    subject_hit = _best_hit(hits, parsed.get("name") or "", parsed.get("city") or "")
-
-    # If they pasted a Maps URL, try to enrich from that public page (and follow short links).
     google = None
+    site: dict[str, Any] | None = None
     if parsed["url"]:
         google = _google_enrich(parsed["url"])
         result["google"] = google
         result["sources"].append("pasted public listing URL")
+        result["trace"].append("google_preview" if google.get("preview") else "google_page")
+        final = google.get("final_url") or ""
+        if final and final != parsed["url"] and not parsed["name"]:
+            parsed["name"] = _name_from_maps_url(final)
+            if parsed["name"]:
+                result["trace"].append("name_from_redirect")
+            if not parsed.get("lat"):
+                lat, lon = _coords_from_maps_url(final)
+                if lat is not None and lon is not None:
+                    parsed["lat"] = str(lat)
+                    parsed["lon"] = str(lon)
         if google.get("name") and not parsed["name"]:
             parsed["name"] = google["name"]
+            result["trace"].append("name_from_preview")
+        if google.get("lat") and not parsed.get("lat"):
+            parsed["lat"] = str(google["lat"])
+            parsed["lon"] = str(google["lon"])
+        if not google.get("fetched") and not google.get("name"):
+            result["trace"].append("google_unreadable")
+        result["input"] = parsed
+
+    name = (parsed.get("name") or "").strip()
+    city = city_from_input
+    state = ""
+    if not city and google and google.get("website"):
+        site = _website_identity(google["website"])
+        result["trace"].append("website_fetched" if site.get("ok") else "website_unreadable")
+        site_name = site.get("name") or ""
+        gname = google.get("name") or name
+        if site.get("city") and (
+            not site_name or name_score(gname, site_name) >= 0.5 or name_score(name, site_name) >= 0.5
+        ):
+            city = site["city"]
+            state = site.get("state") or ""
+            result["city_source"] = "website_schema"
+            result["trace"].append("city_from_website")
+        elif site.get("city"):
+            result["trace"].append("website_city_name_mismatch")
+    if not city and parsed.get("lat") and parsed.get("lon"):
+        try:
+            rev = _reverse_locality(float(parsed["lat"]), float(parsed["lon"]))
+        except ValueError:
+            rev = {"city": ""}
+        if rev.get("city"):
+            city = rev["city"]
+            state = rev.get("state") or state
+            result["city_source"] = "map_pin"
+            result["trace"].append("city_from_map_pin")
+        elif rev.get("postcode"):
+            z = _city_from_postcode(rev["postcode"])
+            if z.get("city"):
+                city = z["city"]
+                state = z.get("state") or rev.get("state") or state
+                result["city_source"] = "postcode"
+                result["trace"].append("city_from_postcode")
+            else:
+                result["trace"].append("postcode_city_missing")
+        else:
+            result["trace"].append("map_pin_city_missing")
+    if city:
+        parsed["city"] = city
+        result["input"] = parsed
+
+    # Name + city is the fallback when the URL had no city or no street address.
+    subject_hit = None
+    if name and city:
+        if not city_from_input:
+            result["trace"].append("fallback_name_city")
+        hits = _nominatim({"q": f"{name} {city} United States", "limit": "8"})
+        result["sources"].append("openstreetmap nominatim")
+        time.sleep(1.05)
+        subject_hit = _best_hit(hits, name, city)
+        result["trace"].append("nominatim_name_city_hit" if subject_hit else "nominatim_name_city_miss")
+    elif name or parsed.get("query"):
+        q = f"{name} United States" if name else parsed["query"]
+        hits = _nominatim({"q": q, "limit": "8"})
+        result["sources"].append("openstreetmap nominatim")
+        time.sleep(1.05)
+        subject_hit = _best_hit(hits, name, "")
+        result["trace"].append("nominatim_name_only_hit" if subject_hit else "nominatim_name_only_miss")
+
+    gname = ((google or {}).get("name") or "").strip()
+    if not subject_hit and gname and city and gname.lower() != name.lower():
+        hits = _nominatim({"q": f"{gname} {city} United States", "limit": "8"})
+        time.sleep(1.05)
+        subject_hit = _best_hit(hits, gname, city)
+        result["trace"].append("nominatim_preview_name_city_hit" if subject_hit else "nominatim_preview_name_city_miss")
+        if not name:
+            name = gname
+            parsed["name"] = gname
             result["input"] = parsed
 
-    if not subject_hit:
-        result["thin_reason"] = (
-            "Not enough public map-pack data to tease. Don’t pay $197 for a guess."
-        )
-        return result
+    if not subject_hit and not (name or gname):
+        result["thin_code"] = "url_unparsed" if parsed.get("url") else "place_not_found"
+        result["thin_reason"] = "We couldn't find that listing."
+        result["missing_fields"] = ["business name", "primary category", "review count", "city"]
+        return _finish(result)
 
-    subject = _place(subject_hit, "nominatim")
+    if subject_hit:
+        subject = _place(subject_hit, "nominatim")
+        if not _hit_has_street(subject_hit):
+            # No street on the public map record. Do not invent one.
+            subject["address"] = ""
+        result["trace"].append("subject_from_osm")
+    else:
+        subject = _subject_from_observed(name or gname, city, state, google, site if isinstance(site, dict) else None)
+        result["trace"].append("subject_from_public_listing")
+
     if parsed["name"] and not subject["name"]:
         subject["name"] = parsed["name"]
     if google and google.get("name") and not subject["name"]:
         subject["name"] = google["name"]
     if google and google.get("category"):
         subject["google_category"] = google["category"]
+    if google and google.get("phone") and not subject.get("phone"):
+        subject["phone"] = google["phone"]
+    if google and google.get("website") and not subject.get("website"):
+        subject["website"] = google["website"]
+    if google and google.get("hours") and not subject.get("hours"):
+        subject["hours"] = google["hours"]
     if google and google.get("review_count_total") is not None:
         subject["review_count_total"] = google["review_count_total"]
-        subject["review_count_source"] = "public listing JSON-LD (total, not 90-day)"
+        subject["review_count_source"] = (
+            "public Maps preview" if google.get("preview") else "public listing JSON-LD (total, not 90-day)"
+        )
     if google and google.get("rating"):
         subject["rating"] = google["rating"]
+    if google and google.get("service_area"):
+        # The public listing hides the street. Do not fill it from OSM or the pin.
+        subject["address"] = ""
+        subject["service_area"] = True
+        result["trace"].append("service_area_no_street")
+    elif google and google.get("address"):
+        subject["address"] = google["address"]
+        subject["service_area"] = False
+        addr_city, addr_state = _city_state_from_address(google["address"])
+        if addr_city and not subject.get("city"):
+            subject["city"] = addr_city
+        if addr_state and not subject.get("state"):
+            subject["state"] = addr_state
+    elif site and site.get("street") and not subject.get("address") and not subject.get("service_area"):
+        subject["address"] = ", ".join(p for p in (site.get("street"), site.get("city"), site.get("state")) if p)
 
-    if subject["country_code"] and subject["country_code"] != "us":
+    if result["city_source"] == "input" and city:
+        subject["city"] = city
+    elif city and not subject.get("city"):
+        subject["city"] = city
+    if state and not subject.get("state"):
+        subject["state"] = state
+
+    if subject.get("country_code") and subject["country_code"] != "us":
+        result["thin_code"] = "not_us"
         result["thin_reason"] = "US HVAC and plumbing shops only."
         result["vertical_ok"] = False
         result["subject"] = subject
-        return result
+        return _finish(result)
 
-    city = parsed["city"] or subject["city"]
-    subject["city"] = city
+    city = subject.get("city") or city
     result["subject"] = subject
 
     vert = subject["vertical"]
-    extra_name = f"{parsed['name']} {parsed['query']} {google.get('category') if google else ''}"
+    extra_name = f"{parsed.get('name') or ''} {parsed.get('query') or ''} {(google or {}).get('category') or ''}"
     if vert == "unknown":
-        vert = _is_hvac_plumbing(subject_hit, extra_name)
+        if subject_hit:
+            vert = _is_hvac_plumbing(subject_hit, extra_name)
+        else:
+            vert = _is_hvac_plumbing(
+                {
+                    "name": subject.get("name") or "",
+                    "type": "",
+                    "display_name": subject.get("name") or "",
+                    "extratags": {},
+                    "address": {},
+                },
+                extra_name,
+            )
         subject["vertical"] = vert
     if vert == "other":
         result["vertical_ok"] = False
         result["thin"] = True
+        result["thin_code"] = "wrong_vertical"
         result["thin_reason"] = (
             "This page is HVAC and plumbing only. Public map data does not show this listing as either."
         )
-        return result
+        return _finish(result)
 
-    blob = _blob(subject_hit) + extra_name.lower()
+    blob = (_blob(subject_hit) if subject_hit else "") + " " + extra_name.lower()
     if "plumb" in blob or "drain" in blob or "sewer" in blob:
         result["service_phrase"] = "emergency plumber"
     elif any(w in blob for w in ("hvac", "heating", "cooling", "furnace", "air condition")):
@@ -554,18 +1105,22 @@ def lookup(raw: str) -> dict[str, Any]:
     if not competitors:
         result["thin"] = True
         result["unlock"] = False
+        result["thin_code"] = "no_competitors"
         result["thin_reason"] = (
-            "Not enough public map-pack data to tease. Don’t pay $197 for a guess."
+            "Not enough other public shops to compare. The full check stays hidden until 3 real gaps are visible."
         )
         result["bullets"] = _bullets(result)
-        return result
+        result["missing_fields"] = _missing_fields(result)
+        return _finish(result)
 
     result["thin"] = False
+    result["thin_code"] = "ok"
     result["thin_reason"] = ""
     result["ok"] = True
     result["unlock"] = True
     result["bullets"] = _bullets(result)
-    return result
+    result["missing_fields"] = []
+    return _finish(result)
 
 
 def _bullets(result: dict[str, Any]) -> list[dict[str, str]]:
@@ -622,16 +1177,22 @@ def _bullets(result: dict[str, Any]) -> list[dict[str, str]]:
             f"You picked up {n_you} in that public snippet. Star rating is not the gap. Velocity is."
         )
     elif total is not None:
+        source = subject.get("review_count_source") or "A public page"
         rev_body = (
-            f"Public listing JSON-LD shows {total} reviews total for you. "
+            f"{source} shows {total} reviews total for you. "
             "A 90-day velocity was not on the page we could read, so it is not shown. "
             "Star rating is not the gap. Velocity is. We will not guess the 90-day count."
         )
-    else:
-        cname = comps[0]["name"] if comps else "A competitor"
+    elif comps:
+        cname = comps[0]["name"]
         rev_body = (
             f"{cname} — public pages we could read did not include 90-day review dates for you or them. "
             "Star rating is not the gap. Velocity is. We will not invent a review count."
+        )
+    else:
+        rev_body = (
+            "Public pages we could read did not include a review count or 90-day review dates. "
+            "We will not invent a review count."
         )
 
     # Posts — never invent.
@@ -724,6 +1285,10 @@ def run_lookup(name: str, city: str, listing_url: str) -> dict[str, Any]:
     subject = data.get("subject") or {}
     google = data.get("google") or {}
     comps = data.get("competitors") or []
+    parsed = data.get("input") or {}
+    resolved_name = (subject.get("name") or parsed.get("name") or name or "").strip()
+    resolved_city = (subject.get("city") or parsed.get("city") or city or "").strip()
+    resolved_url = listing_url or parsed.get("url") or ""
 
     rating = google.get("rating") if google else subject.get("rating")
     try:
@@ -746,10 +1311,11 @@ def run_lookup(name: str, city: str, listing_url: str) -> dict[str, Any]:
         category = tags[0]
 
     listing = {
-        "name": subject.get("name") or name or None,
+        "name": resolved_name or None,
         "address": subject.get("address") or None,
-        "city": subject.get("city") or city or None,
+        "city": resolved_city or None,
         "state": subject.get("state") or None,
+        "service_area": bool(subject.get("service_area")),
         "postcode": subject.get("postcode") or None,
         "phone": subject.get("phone") or None,
         "website": subject.get("website") or None,
@@ -855,26 +1421,21 @@ def run_lookup(name: str, city: str, listing_url: str) -> dict[str, Any]:
                 if ld.get("url") and not listing.get("website"):
                     listing["website"] = str(ld["url"])
                 ar = ld.get("aggregateRating") if isinstance(ld.get("aggregateRating"), dict) else None
-                if ar:
-                    if listing["review_count"] is None and ar.get("reviewCount") not in (None, ""):
-                        try:
-                            listing["review_count"] = int(str(ar["reviewCount"]).replace(",", ""))
-                            listing["review_source"] = "website schema.org AggregateRating"
-                            facts["review_count"] = listing["review_count"]
-                        except ValueError:
-                            pass
-                    if listing["rating"] is None and ar.get("ratingValue") not in (None, ""):
-                        try:
-                            listing["rating"] = float(str(ar["ratingValue"]).replace(",", ""))
-                            facts["rating"] = listing["rating"]
-                        except ValueError:
-                            pass
+                if ar and ar.get("reviewCount") not in (None, ""):
+                    # The site's own AggregateRating is not a Google review count.
+                    facts["website_review_count_not_used"] = str(ar.get("reviewCount"))
+            if facts.get("website_review_count_not_used"):
+                website_detail = (
+                    f"Fetched {final}. The site published reviewCount "
+                    f"{facts['website_review_count_not_used']}, which is not a Google review count, so it is not used."
+                )
+            else:
+                website_detail = f"Fetched {final}. No Google review count in schema."
             sources.append({
                 "id": "website",
                 "label": "Business website (schema.org)",
-                "status": "ok" if facts.get("review_count") is not None or ld else "empty",
-                "detail": f"Fetched {final}. "
-                + ("schema reviewCount observed" if facts.get("review_count") is not None else "no AggregateRating.reviewCount in schema"),
+                "status": "ok" if ld else "empty",
+                "detail": website_detail,
                 "facts": facts,
             })
         else:
@@ -895,9 +1456,21 @@ def run_lookup(name: str, city: str, listing_url: str) -> dict[str, Any]:
         })
 
     found = bool(listing.get("name") or listing.get("address") or listing.get("phone") or listing.get("website"))
+    if resolved_name and resolved_city:
+        retry_q = f"{resolved_name}, {resolved_city}"
+    elif resolved_name:
+        retry_q = resolved_name
+    else:
+        retry_q = resolved_url
     return {
         "queried_at": datetime.now().astimezone(__import__("zoneinfo").ZoneInfo("America/New_York")).strftime("%b %-d, %Y, %-I:%M %p ET"),
-        "input": {"name": name or UNKNOWN, "city": city or UNKNOWN, "listing_url": listing_url or UNKNOWN},
+        "input": {
+            "name": resolved_name or UNKNOWN,
+            "city": resolved_city or UNKNOWN,
+            "listing_url": resolved_url or UNKNOWN,
+        },
+        "retry_q": retry_q,
+        "maps_url": data.get("maps_url") or resolved_url or "",
         "found": found,
         "listing": listing,
         "sources": sources,
