@@ -98,7 +98,7 @@ def gaps_from_listing(listing: dict, sources: list[dict]) -> list[dict]:
                 "severity": "this_week",
                 "title": "We could not read your Google listing panel",
                 "detail": maps.get("detail")
-                or "Google did not include categories, photos, posts, or reviews in the HTML we fetched. The $195 full check is a manual public-page pass plus this automated file.",
+                or "Google did not include categories, photos, posts, or reviews in the HTML we fetched. The $195 competitor report is a manual public-page pass plus this automated file.",
             }
         )
 
@@ -207,7 +207,7 @@ def build_reports(lookup: dict) -> dict:
         "review_source": listing.get("review_source"),
         "review_unknown_reason": None
         if listing.get("review_count") is not None
-        else "No public page we fetched included a schema.org reviewCount for this business. UNKNOWN is not zero.",
+        else "No public page we could read included a review count for this business. UNKNOWN is not zero.",
         "completeness": rows,
         "gaps_preview": [g for g in gaps if g["severity"] == "this_week"][:4],
         "sources": summary,
@@ -242,7 +242,7 @@ def build_reports(lookup: dict) -> dict:
             {
                 "id": "rebuild",
                 "title": "Listing rebuild is a separate $397 one-time job (thank-you page only)",
-                "detail": "Separate from the $195 full check: category list to add yourself, services copy, 8-week post calendar, review-reply templates. Offered after this check is paid. Not a monthly plan.",
+                "detail": "Separate from the $195 competitor report: category list to add yourself, services copy, 8-week post calendar, review-reply templates. Offered after this report is paid. Not a monthly plan.",
             },
         ],
         "legal": (

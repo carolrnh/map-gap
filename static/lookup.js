@@ -21,7 +21,7 @@
       note.setAttribute("role", "status");
       btn.insertAdjacentElement("afterend", note);
     }
-    note.textContent = "Reading reviews, categories and competitors near you, usually 5–20 seconds.";
+    note.textContent = "Reading the public listing near you, usually under a minute.";
     // Disable on the next turn so this submit is not cancelled.
     window.setTimeout(function () {
       btn.disabled = true;

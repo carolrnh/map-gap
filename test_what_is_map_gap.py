@@ -19,14 +19,15 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         html = res.get_data(as_text=True)
         self.assertIn(
-            "Map Gap — Google Maps audit for HVAC and plumbing (not mapgaps.com)",
+            "Map Gap — Google Maps checkup for HVAC and plumbing (not mapgaps.com)",
             html,
         )
         self.assertIn(
-            "Map Gap at map-gap.onrender.com is an HVAC and plumbing Google Maps audit — not mapgaps.com.",
+            "Map Gap at map-gap.onrender.com is an HVAC and plumbing Google Maps checkup — not mapgaps.com.",
             html,
         )
-        self.assertIn("a free check of 3 things the shops above you have, and a $195 full check", html)
+        self.assertIn("a free check of 3 things the shops above you have, and a $195 competitor report", html)
+        self.assertNotIn("audit", html.lower())
         self.assertIn("You keep the listing", html)
         self.assertIn("mapgaps.com or bioinformatics MAPGAPS", html)
         self.assertIn("What Map Gap is", html)
@@ -86,8 +87,16 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertIn('href="/what-is-map-gap"', html)
         self.assertIn("Show my 3 free gaps", html)
         self.assertIn("Free check", html)
-        self.assertIn("Full check — $195", html)
+        self.assertIn("Competitor report — $195", html)
+        self.assertNotIn("Full check", html)
         self.assertIn("Listing rebuild — $397", html)
+        self.assertIn("Usually under a minute", html)
+        self.assertIn("Name, City or Maps link", html)
+        self.assertIn(
+            "If the report doesn't find anything useful, reply to your receipt email for a full refund.",
+            html,
+        )
+        self.assertEqual(html.count("You keep the listing. No ranking is guaranteed."), 1)
         self.assertNotIn("$197", html)
         self.assertNotIn("Don’t pay", html)
         self.assertNotIn("teaser", html.lower())
@@ -106,6 +115,12 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertNotIn("$197", html)
         self.assertNotIn("STRIPE_PAYMENT_LINK_URL", html)
         self.assertIn("Payment not connected yet", html)
+        self.assertNotIn("on the machine that runs this app", html)
+        self.assertIn("The link for your check contains the public result", html)
+        self.assertIn(
+            "If the report doesn't find anything useful, reply to your receipt email for a full refund.",
+            html,
+        )
 
     def test_cta_orange_meets_contrast_target(self):
         css = Path("static/style.css").read_text(encoding="utf-8")

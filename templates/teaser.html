@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}3 things the shops above you have — Map Gap{% endblock %}
-{% block description %}Free check from the public listing. Review counts only if we could read them. Full check ${{ price }}.{% endblock %}
+{% block description %}Free check from the public listing. Review counts only if we could read them. Competitor report ${{ price }}.{% endblock %}
 {% block main %}
 <section class="hero tight">
   <p class="kicker">Free check · public listing</p>
@@ -65,15 +65,14 @@
 
 {% if show_paywall %}
 <section class="paywall card" id="pay">
-  <h2>Full check — ${{ price }}</h2>
-  <p>Pay once. Get the one-pager and the sheet. You keep the listing.</p>
+  <h2>Competitor report — ${{ price }}</h2>
+  <p>Pay once. You get the written report on the thank-you page. You keep the listing.</p>
   <h3>What’s included</h3>
   <ul>
-    <li>You vs the 3 shops Google shows first (categories, review speed, posts, services)</li>
+    <li>You vs the 3 shops Google shows first (categories, how fast they get reviews, posts, services)</li>
     <li>This-week vs later fix list</li>
-    <li>Delivery on the thank-you page after payment (this version does not email the file)</li>
+    <li>The thank-you page shows the report after payment. We do not email it.</li>
   </ul>
-  <p>You keep the listing. No ranking is guaranteed.</p>
   {% if pay_href %}
     <a class="btn pay-live" href="{{ pay_href }}" rel="noopener">Pay ${{ price }}</a>
     <p class="hint">US card. No subscription. 2.9% + 30¢ processing when the link exists.</p>
@@ -84,5 +83,4 @@
 </section>
 {% endif %}
 
-<p class="legal-line">You keep the listing. No ranking is guaranteed.</p>
 {% endblock %}

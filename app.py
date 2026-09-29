@@ -15,10 +15,11 @@ import threading
 from pathlib import Path
 from urllib.parse import urlencode
 
-from flask import Flask, abort, g, redirect, render_template, request, url_for
+from flask import Flask, g, redirect, render_template, request, send_from_directory, url_for
 
 from lookup import UNKNOWN, run_lookup
 from report import PRICE, build_reports
+from result_link import lookup_from_view, pack_link, unpack_link, view_from_lookup
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = ROOT / "data" / "mapgap.sqlite"
@@ -125,7 +126,7 @@ def seo():
         "title": "Why isn’t my HVAC or plumbing shop showing up on Google Maps?",
         "description": (
             "Paste your Google listing. See 3 things the shops above you have that you don’t. "
-            "Free check for HVAC and plumbing shops. Full check $195. Listing rebuild $397."
+            "Free check for HVAC and plumbing shops. Competitor report $195. Listing rebuild $397."
         ),
     }
 
@@ -135,7 +136,7 @@ WHAT_IS_FAQS = [
         "q": "What is Map Gap?",
         "a": (
             "Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops: "
-            "a free check of 3 things the shops above you have, and a $195 full check. You keep the listing."
+            "a free check of 3 things the shops above you have, and a $195 competitor report. You keep the listing."
         ),
     },
     {
@@ -155,8 +156,9 @@ WHAT_IS_FAQS = [
     {
         "q": "How much?",
         "a": (
-            "The free check shows 3 things the shops above you have. The full check is $195. "
-            "The listing rebuild is $397 after you have the full check. There is no monthly plan on this site."
+            "The free check shows 3 things the shops above you have. The competitor report is $195. "
+            "The listing rebuild is $397 after you have the competitor report. There is no monthly plan on this site. "
+            "If the report doesn't find anything useful, reply to your receipt email for a full refund."
         ),
     },
     {
@@ -270,16 +272,46 @@ def lookup_post():
         )
     lookup = run_lookup(name, city, listing_url)
     built = build_reports(lookup)
-    rid = save_report(lookup, built)
-    return redirect(url_for("teaser", rid=rid))
+    try:
+        rid = save_report(lookup, built)
+    except Exception:
+        rid = secrets.token_urlsafe(8).replace("-", "").replace("_", "")[:12]
+    token = pack_link(view_from_lookup(lookup, rid))
+    return redirect(url_for("teaser", rid=token))
+
+
+def record_for(rid: str) -> dict | None:
+    """Sqlite while this deploy still has the row; otherwise the signed link."""
+    view = unpack_link(rid)
+    if view:
+        stored = load_report(str(view.get("id") or ""))
+        if stored:
+            return stored
+        lookup = lookup_from_view(view)
+        built = build_reports(lookup)
+        return {
+            "id": view.get("id") or "",
+            "created_at": lookup.get("queried_at") or "",
+            "input": lookup.get("input") or {},
+            "lookup": lookup,
+            "teaser": built["teaser"],
+            "full": built["full"],
+            "unlocked": False,
+        }
+    return load_report(rid)
+
+
+def expired_page(prefill: str = ""):
+    q = (prefill or request.args.get("q") or "").strip()
+    return render_template("expired.html", prefill=q), 404
 
 
 @app.get("/r/<rid>")
 @app.get("/teaser/<rid>")
 def teaser(rid: str):
-    rec = load_report(rid)
+    rec = record_for(rid)
     if not rec:
-        abort(404)
+        return expired_page()
     show_full = is_unlocked(rec)
     pay_href = None
     pay_label = "Payment not connected yet"
@@ -326,7 +358,7 @@ def is_unlocked(rec: dict) -> bool:
 @app.get("/pay/<rid>")
 def pay(rid: str | None = None):
     rid = rid or (request.args.get("report") or "").strip()
-    rec = load_report(rid) if rid else None
+    rec = record_for(rid) if rid else None
     pay_href = None
     if payment_connected() and rec:
         base = stripe_url()
@@ -346,6 +378,11 @@ def thanks():
 @app.get("/health")
 def health():
     return {"ok": True, "payment_connected": payment_connected(), "price": PRICE}
+
+
+@app.get("/favicon.ico")
+def favicon_ico():
+    return send_from_directory(app.static_folder, "favicon.ico")
 
 
 @app.get("/robots.txt")

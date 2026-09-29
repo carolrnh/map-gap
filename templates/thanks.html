@@ -1,15 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Your full check — Map Gap{% endblock %}
+{% block title %}Your competitor report — Map Gap{% endblock %}
+{% block og_title %}Your competitor report — Map Gap{% endblock %}
 {% block main %}
 <section class="hero tight">
-  <h1>Your full check</h1>
-  <p class="lede">Download the one-pager and the sheet. You own the listing. Apply what you want. Skip what you don’t.</p>
+  <h1>Your competitor report</h1>
+  <p class="lede">The written report is on this page. You own the listing. Apply what you want. Skip what you don’t.</p>
 </section>
 <section class="card">
   {% if payment_connected %}
-  <p>If you finished checkout, stay on this drop — v1 does not email the report. Automatic unlock needs a Stripe webhook; until then the paid Stripe reference is the lookup id.</p>
+  <p>If you finished checkout, stay on this page. We do not email the report.</p>
   {% else %}
-  <p>Payment is not connected on this instance. Visiting this page did not charge a card.</p>
+  <p>Payment is not connected on this site. Visiting this page did not charge a card.</p>
   {% endif %}
   {% if rid %}
   <p>Lookup reference: <code>{{ rid }}</code> — <a href="{{ url_for('teaser', rid=rid) }}">back to your check</a></p>
