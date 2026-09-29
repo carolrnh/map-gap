@@ -14,3 +14,9 @@ services:
         value: "0.0.0.0"
       - key: STRIPE_PAYMENT_LINK_URL
         sync: false
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: USE_GOOGLE_PLACES
+        value: "false"
+      - key: PLACES_DAILY_CAP
+        value: "30"

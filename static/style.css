@@ -259,6 +259,16 @@ code { font-family: var(--mono); font-size: 13px; }
   margin: 0 0 8px;
   color: var(--ink);
 }
+.places-panel {
+  border-left: 4px solid #1a73e8;
+}
+.gmaps-attr {
+  font-family: var(--ui);
+  font-size: 16px;
+  line-height: 18px;
+  margin: 12px 0 0;
+  color: var(--ink-2);
+}
 .retry-form { margin-top: 16px; }
 .retry-form .btn { min-height: 48px; }
 @media (max-width: 640px) {
