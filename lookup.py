@@ -846,6 +846,12 @@ def _best_hit(hits, name, city):
 
 
 def lookup(raw: str) -> dict[str, Any]:
+    from places import google_places_enabled
+
+    if google_places_enabled():
+        from places_lookup import lookup_places
+
+        return lookup_places(raw)
     parsed = parse_input(raw)
     city_from_input = (parsed.get("city") or "").strip()
     result: dict[str, Any] = {
@@ -1271,6 +1277,12 @@ def name_score(a: str, b: str) -> float:
 
 def run_lookup(name: str, city: str, listing_url: str) -> dict[str, Any]:
     """Adapter used by app.py / report.py. Does not invent review counts."""
+    from places import google_places_enabled
+
+    if google_places_enabled():
+        from places_lookup import run_places_lookup
+
+        return run_places_lookup(name, city, listing_url)
     name = (name or "").strip()
     city = (city or "").strip()
     listing_url = (listing_url or "").strip()

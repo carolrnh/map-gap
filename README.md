@@ -63,10 +63,20 @@ If public data is thin, the check still lists what we could and could not fetch.
 
 ## Data
 
-- Identity + nearby shops: OpenStreetMap Nominatim (1 request/second).
-- If the buyer pastes a Google Maps / GBP URL, that public page is fetched once. JSON-LD only.
-- 90-day review velocity and Google posts stay **UNKNOWN** unless they were on the page. UNKNOWN is not zero.
+- Default: OpenStreetMap Nominatim (1 request/second), plus the public page when a Google URL is pasted.
+- 90-day review velocity and Google posts stay **UNKNOWN** unless they were on that page. UNKNOWN is not zero.
 - HVAC/plumbing only. US only.
+
+### Google Places (off until Carol sets it)
+
+`USE_GOOGLE_PLACES` defaults off. With the flag off, or with no `GOOGLE_PLACES_API_KEY`, the Nominatim path above is unchanged.
+
+To turn Places on, set both:
+
+- `USE_GOOGLE_PLACES=true`
+- `GOOGLE_PLACES_API_KEY` (server-side only)
+
+`PLACES_DAILY_CAP` defaults to 30 Places HTTP calls per UTC day. One check is an IDs-only Text Search, one Place Details call for the business, and one Text Search for competitors (`includePureServiceAreaBusinesses`). Competitor details are not fetched one by one. Photos are shown as 0–9 or 10+. Google Posts and 90-day review velocity are not reported. Place IDs are what we store; opening the result loads Places again and counts against the cap.
 
 ## Honesty
 

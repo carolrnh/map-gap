@@ -290,3 +290,55 @@ def name_close(a, b) -> bool:
     from lookup import name_score
 
     return name_score(str(a or ""), str(b or "")) >= 0.7
+
+
+def build_places_reports(lookup: dict) -> dict:
+    """Teaser from a live Places response. Callers must not write this dict to sqlite."""
+    listing = lookup.get("listing") or {}
+    raw = lookup.get("raw") or {}
+    display_name = listing.get("name") or lookup.get("input", {}).get("name") or UNKNOWN
+    city = listing.get("city") or lookup.get("input", {}).get("city") or UNKNOWN
+    reviews = listing.get("review_count")
+    teaser = {
+        "kind": "teaser",
+        "price": PRICE,
+        "display_name": display_name,
+        "city": city,
+        "found": bool(lookup.get("found")),
+        "queried_at": lookup.get("queried_at"),
+        "nap": {
+            "name": _unk(listing.get("name")),
+            "address": _unk(listing.get("address")),
+            "phone": _unk(listing.get("phone")),
+            "website": _unk(listing.get("website")),
+            "hours": _unk(listing.get("hours")),
+            "category": _unk(listing.get("category")),
+        },
+        "rating": listing.get("rating"),
+        "review_count": reviews,
+        "review_source": "Google Places" if reviews is not None else None,
+        "review_unknown_reason": None
+        if reviews is not None
+        else "Google Places did not return a review count for this listing. A missing count is not zero.",
+        "gaps_preview": raw.get("bullets") or [],
+    }
+    full = {
+        "kind": "full",
+        "price": PRICE,
+        "display_name": display_name,
+        "city": city,
+        "found": teaser["found"],
+        "queried_at": teaser["queried_at"],
+        "nap": teaser["nap"],
+        "rating": teaser["rating"],
+        "review_count": teaser["review_count"],
+        "review_source": teaser["review_source"],
+        "review_unknown_reason": teaser["review_unknown_reason"],
+        "nearby": lookup.get("nearby") or [],
+        "gaps": raw.get("bullets") or [],
+        "legal": (
+            "This page is loaded from Google Places for this view. You keep the listing. "
+            "No ranking is guaranteed."
+        ),
+    }
+    return {"teaser": teaser, "full": full}

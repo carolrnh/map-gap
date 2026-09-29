@@ -26,12 +26,27 @@
       {% if maps_url %}{% if ident_city or ident_cat or listing.service_area %} · {% endif %}<a href="{{ maps_url }}" rel="noopener noreferrer">View on Google Maps</a>{% endif %}
     </p>
   {% else %}
+    {% if places_mode %}
+    <p class="kicker">Free check · Google Places</p>
+    {% if bullets|length == 1 %}
+      <h1>1 thing the shops above you have</h1>
+    {% elif bullets %}
+      <h1>{{ bullets|length }} things the shops above you have</h1>
+    {% else %}
+      <h1>No gap on the fields Places returns</h1>
+    {% endif %}
+    <p class="lede">
+      {% if ident_name %}{{ ident_name }}{% endif %}
+      {% if ident_city %} · {{ ident_city }}{% endif %}
+    </p>
+    {% else %}
     <p class="kicker">Free check · public listing</p>
     <h1>3 things the shops above you have</h1>
     <p class="lede">
       {% if ident_name %}{{ ident_name }}{% endif %}
       {% if ident_city %} · {{ ident_city }}{% endif %}
     </p>
+    {% endif %}
   {% endif %}
 </section>
 
@@ -57,6 +72,24 @@
     {% include "_check_again.html" %}
   </div>
 {% else %}
+  {% if places_mode %}
+  <div class="places-panel">
+    {% if bullets %}
+    <ol class="bullets">
+      {% for b in bullets %}
+      <li>
+        <h2>{{ b.title }}</h2>
+        <p>{{ b.body }}</p>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p class="result-lead">Review count, star rating, website, hours, photos, category, and phone did not show a gap we can report.</p>
+    {% endif %}
+    <p class="hint caveat">These shops are the ones Google Places returned for this search. You keep the listing. No ranking is guaranteed.{% if bullets|length < 3 %} The full check stays off until there are 3 gaps we can show from these fields.{% endif %}</p>
+    <p class="gmaps-attr" translate="no">Google Maps</p>
+  </div>
+  {% else %}
   <ol class="bullets">
     {% for b in bullets %}
     <li>
@@ -66,6 +99,7 @@
     {% endfor %}
   </ol>
   <p class="hint caveat">This is public listing data. You keep the listing. No ranking is guaranteed. The full check names the three shops, the rest of what we could read, and what to change this week.</p>
+  {% endif %}
   {% if show_paywall %}
     <p><a class="btn" href="#pay">Get the full check — ${{ price }}</a></p>
     <p><a href="#pay">See what’s in the full check</a></p>
@@ -73,8 +107,8 @@
 {% endif %}
 
 {% if teaser.found %}
-<section class="card">
-  <h2>What public data showed</h2>
+<section class="card{% if places_mode %} places-panel{% endif %}">
+  <h2>{% if places_mode %}What Google Places returned{% else %}What public data showed{% endif %}</h2>
   <table class="sheet">
     <tbody>
       <tr><th>Name</th><td>{{ teaser.nap.name }}</td></tr>
@@ -83,6 +117,10 @@
       {% if teaser.nap.phone and teaser.nap.phone != unknown %}<tr><th>Phone</th><td>{{ teaser.nap.phone }}</td></tr>{% endif %}
       {% if teaser.nap.website and teaser.nap.website != unknown %}<tr><th>Website</th><td>{{ teaser.nap.website }}</td></tr>{% endif %}
       {% if teaser.nap.hours and teaser.nap.hours != unknown %}<tr><th>Hours</th><td>{{ teaser.nap.hours }}</td></tr>{% endif %}
+      {% if places_mode %}
+      <tr><th>Star rating</th><td>{% if teaser.rating is not none %}{{ teaser.rating }}{% else %}<span class="unk">UNKNOWN</span>{% endif %}</td></tr>
+      <tr><th>Photos</th><td>{{ listing.photo_label or unknown }} <span class="muted">(0–9 or 10+)</span></td></tr>
+      {% endif %}
       <tr>
         <th>Review count</th>
         <td>
@@ -96,7 +134,16 @@
       </tr>
     </tbody>
   </table>
+  {% if places_mode %}
+  <p class="hint">UNKNOWN is not zero. Google Posts and a 90-day review count are not in Places, so this check does not report them.</p>
+  <p class="gmaps-attr" translate="no">Google Maps</p>
+  {% for line in place_attributions %}
+  <p class="hint" translate="no">{{ line }}</p>
+  {% endfor %}
+  <p class="hint">Listing details are loaded from Google for this page. We keep the place ID, not the listing contents.</p>
+  {% else %}
   <p class="hint">UNKNOWN is not zero. We do not invent a 90-day review count or a post count.</p>
+  {% endif %}
 </section>
 {% endif %}
 
@@ -106,7 +153,11 @@
   <p>Pay once. Get the one-pager and the sheet. You keep the listing.</p>
   <h3>What’s included</h3>
   <ul>
+    {% if places_mode %}
+    <li>You vs the shops this Places search returned, on review count, rating, website, hours, photos, category, and phone</li>
+    {% else %}
     <li>You vs the 3 shops Google shows first (categories, review speed, posts, services)</li>
+    {% endif %}
     <li>This-week vs later fix list</li>
     <li>Delivery on the thank-you page after payment (this version does not email the file)</li>
   </ul>
