@@ -63,7 +63,7 @@ If public data is thin, the check still lists what we could and could not fetch.
 
 ## Data
 
-Saved checks are signed into the result URL (`result_link.py`). Render’s free tier wipes the disk on deploy, so a sqlite id alone 404s. The server still keeps a sqlite copy until the next deploy. A missing or old link shows “This check expired. Run it again (free, about a minute).” Payment unlock is not stored in the link.
+Saved checks are signed into the result URL (`result_link.py`). Render’s free tier wipes the disk on deploy, so a sqlite id alone 404s. The server still keeps a sqlite copy until the next deploy. A missing or old link shows “This check expired” and “Run it again (free, usually under a minute).” Payment unlock is not stored in the link.
 
 - Identity + nearby shops: OpenStreetMap Nominatim (1 request/second).
 - If the buyer pastes a Google Maps / GBP URL, that public page is fetched once. JSON-LD only.

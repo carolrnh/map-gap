@@ -117,7 +117,10 @@ class DurableLinkTests(unittest.TestCase):
         missing = self.client.get("/teaser/doesnotexist")
         html = missing.get_data(as_text=True)
         self.assertEqual(missing.status_code, 404)
-        self.assertIn("This check expired. Run it again (free, about a minute).", html)
+        self.assertIn("<h1>This check expired</h1>", html)
+        self.assertIn("Run it again (free, usually under a minute).", html)
+        self.assertNotIn("This check expired. Run it again", html)
+        self.assertEqual(html.count("This check expired"), 2)
         self.assertIn("Name, City or Maps link", html)
 
         prefilled = self.client.get("/teaser/doesnotexist?q=Summit+Heating%2C+Columbus")
@@ -128,7 +131,7 @@ class DurableLinkTests(unittest.TestCase):
         flipped = ("A" if body[0] != "A" else "B") + body[1:]
         bad = self.client.get(f"/teaser/v1.{flipped}.{sig}")
         self.assertEqual(bad.status_code, 404)
-        self.assertIn("This check expired. Run it again (free, about a minute).", bad.get_data(as_text=True))
+        self.assertIn("Run it again (free, usually under a minute).", bad.get_data(as_text=True))
 
     def test_pay_page_names_the_paid_tier(self):
         res = self.client.get("/pay")
@@ -152,9 +155,16 @@ class ChromeTests(unittest.TestCase):
         home = self.client.get("/")
         html = home.get_data(as_text=True)
         self.assertIn('rel="icon"', html)
+        self.assertIn('rel="canonical" href="http://localhost/"', html)
+        self.assertIn('property="og:url" content="http://localhost/"', html)
         self.assertIn("og:image", html)
         self.assertIn("og:title", html)
         self.assertIn("og:description", html)
+        queried = self.client.get("/legal?from=share")
+        queried_html = queried.get_data(as_text=True)
+        self.assertIn('rel="canonical" href="http://localhost/legal"', queried_html)
+        self.assertIn('property="og:url" content="http://localhost/legal"', queried_html)
+        self.assertNotIn("from=share", queried_html)
         self.assertIn("favicon.svg", html)
         self.assertEqual(self.client.get("/favicon.ico").status_code, 200)
         self.assertEqual(self.client.get("/static/og.png").status_code, 200)
@@ -176,8 +186,11 @@ class ChromeTests(unittest.TestCase):
         self.assertIn("usually under a minute", script)
         self.assertNotIn("5–20", script)
         home = self.client.get("/").get_data(as_text=True)
-        self.assertIn("Usually under a minute", home)
+        self.assertIn("In under a minute you’ll see", home)
+        self.assertNotIn("Usually under a minute you’ll see", home)
         self.assertNotIn("In about a minute", home)
+        self.assertIn("tap-link", home)
+        self.assertIn("nowrap", home)
 
     def test_subpages_say_checkup_and_trust_line_once(self):
         for path in (
@@ -197,6 +210,33 @@ class ChromeTests(unittest.TestCase):
         self.assertIn("Free Google Business Profile checkup", checkup)
         self.assertNotIn("gbpcentral", checkup)
         self.assertNotIn("Scout", checkup)
+        suspended = self.client.get("/google-business-profile-suspended").get_data(as_text=True)
+        self.assertIn("This checkup will not get it back.", suspended)
+        self.assertNotIn("This report will not get it back.", suspended)
+        self.assertIn("Google Help: deceptive content", suspended)
+        self.assertIn("not showing on Maps", suspended)
+        self.assertIn("That’s this.", suspended)
+
+    def test_sitemap_and_robots(self):
+        robots = self.client.get("/robots.txt")
+        self.assertEqual(robots.status_code, 200)
+        text = robots.get_data(as_text=True)
+        self.assertIn("Sitemap: http://localhost/sitemap.xml", text)
+        site = self.client.get("/sitemap.xml")
+        self.assertEqual(site.status_code, 200)
+        xml = site.get_data(as_text=True)
+        self.assertIn("<urlset", xml)
+        for path in (
+            "http://localhost/",
+            "http://localhost/what-is-map-gap",
+            "http://localhost/legal",
+            "http://localhost/pay",
+            "http://localhost/google-business-profile-suspended",
+            "http://localhost/why-did-my-google-business-listing-disappear",
+            "http://localhost/google-business-hours-wrong",
+            "http://localhost/google-business-profile-audit-free",
+        ):
+            self.assertIn(f"<loc>{path}</loc>", xml)
 
 
 if __name__ == "__main__":

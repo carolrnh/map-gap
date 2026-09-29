@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}This check expired — Map Gap{% endblock %}
-{% block description %}This check expired. Run it again (free, about a minute).{% endblock %}
+{% block description %}Run it again (free, usually under a minute).{% endblock %}
 {% block robots %}noindex,follow{% endblock %}
 {% block main %}
 <section class="hero tight">
   <h1>This check expired</h1>
-  <p class="lede">This check expired. Run it again (free, about a minute).</p>
+  <p class="lede">Run it again (free, usually under a minute).</p>
 </section>
 <section class="card lookup" id="lookup">
   <form method="post" action="{{ url_for('lookup_post') }}" id="lookup-form">

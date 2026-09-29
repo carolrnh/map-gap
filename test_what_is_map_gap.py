@@ -90,7 +90,11 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertIn("Competitor report — $195", html)
         self.assertNotIn("Full check", html)
         self.assertIn("Listing rebuild — $397", html)
-        self.assertIn("Usually under a minute", html)
+        self.assertIn("In under a minute you’ll see", html)
+        self.assertEqual(
+            html.count("If the report doesn't find anything useful, reply to your receipt email for a full refund."),
+            1,
+        )
         self.assertIn("Name, City or Maps link", html)
         self.assertIn(
             "If the report doesn't find anything useful, reply to your receipt email for a full refund.",
