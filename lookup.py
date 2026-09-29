@@ -4,7 +4,7 @@ Sources: OpenStreetMap Nominatim (identity + nearby HVAC/plumbing), and
 a best-effort fetch of a public Google listing URL the buyer pasted.
 
 Never invent review counts, post counts, ratings, or rankings.
-Unobserved fields stay None / UNKNOWN. Thin data hides the $197 unlock.
+Unobserved fields stay None / UNKNOWN. Thin data hides the $195 unlock.
 """
 
 from __future__ import annotations
@@ -475,7 +475,7 @@ def lookup(raw: str) -> dict[str, Any]:
 
     if not subject_hit:
         result["thin_reason"] = (
-            "Not enough public map-pack data to tease. Don’t pay $197 for a guess."
+            "We couldn’t read enough of this public listing to show 3 gaps."
         )
         return result
 
@@ -555,7 +555,7 @@ def lookup(raw: str) -> dict[str, Any]:
         result["thin"] = True
         result["unlock"] = False
         result["thin_reason"] = (
-            "Not enough public map-pack data to tease. Don’t pay $197 for a guess."
+            "We couldn’t read enough of this public listing to show 3 gaps."
         )
         result["bullets"] = _bullets(result)
         return result
@@ -600,7 +600,7 @@ def _bullets(result: dict[str, Any]) -> list[dict[str, str]]:
     elif gcat:
         cat_body = (
             f"Your public listing type reads as {gcat}. "
-            f"We could not compare secondary Google categories against a public map pack in {city}."
+            f"We could not compare secondary Google categories against the shops Google shows first in {city}."
         )
     elif sub_tags:
         cat_body = (
@@ -673,7 +673,7 @@ def this_week_later(result: dict[str, Any]) -> tuple[list[str], list[str]]:
         )
     else:
         later.append(
-            "Re-check categories on the live Google listing (primary + secondaries) against the three map-pack shops. "
+            "Re-check categories on the live Google listing (primary + secondaries) against the three shops Google shows first. "
             "Public pages this session did not show a missing Google category string."
         )
     this_week.append(
@@ -686,7 +686,7 @@ def this_week_later(result: dict[str, Any]) -> tuple[list[str], list[str]]:
         "Fill the Services section with 2–3 honest sentences each for work you actually do. Leave blank services blank — do not invent them."
     )
     if not this_week:
-        this_week.append("No this-week action from observed public gaps this session.")
+        this_week.append("No this-week action from what we could read on the public listing this session.")
     return this_week, later
 
 UNKNOWN = "UNKNOWN"
@@ -774,7 +774,7 @@ def run_lookup(name: str, city: str, listing_url: str) -> dict[str, Any]:
             "id": "nominatim",
             "label": "OpenStreetMap Nominatim",
             "status": "ok",
-            "detail": f"Matched {subject.get('name')!r} in OSM. Nearby shops are OSM places, not Google map-pack ranks.",
+            "detail": f"Matched {subject.get('name')!r} in OSM. Nearby shops are OSM places, not a Google ranking.",
             "facts": {k: listing.get(k) for k in ("name", "address", "phone", "website", "hours", "category")},
         })
     else:
@@ -826,7 +826,7 @@ def run_lookup(name: str, city: str, listing_url: str) -> dict[str, Any]:
             "id": "osm_nearby",
             "label": "OpenStreetMap nearby HVAC/plumbing",
             "status": "ok",
-            "detail": f"{len(nearby)} other OSM trade listing(s). Not a Google map-pack rank.",
+            "detail": f"{len(nearby)} other OSM trade listing(s). Not a Google ranking.",
             "facts": {"listings": nearby},
         })
     else:

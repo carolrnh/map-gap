@@ -107,7 +107,7 @@
 
     return (
       banner +
-      '<p class="muted">SKU A · Map Pack Audit · <span class="price">$197</span> · public GBP only · you keep ownership</p>' +
+      '<p class="muted">Full check · <span class="price">$195</span> · public listing only · you keep the listing</p>' +
       "<h1>" + escapeHtml(title) + "</h1>" +
       "<p>Subject: <strong>" + escapeHtml(who) + "</strong>" +
       (intake.city ? " · " + escapeHtml(intake.city) : "") +
@@ -119,7 +119,7 @@
       "</section>" +
 
       '<section class="section"><h2>2. Competitor table</h2>' +
-      "<p class='muted'>You vs up to 3 map-pack competitors. Positions and names stay UNKNOWN unless observed on a public page this session.</p>" +
+      "<p class='muted'>You vs up to 3 shops. Positions and names stay UNKNOWN unless observed on a public page this session.</p>" +
       "<table><thead><tr><th>Business</th><th>Primary</th><th>Secondaries</th><th>Stars</th><th>Reviews</th><th>Pack position</th></tr></thead><tbody>" +
       competitorRows(report) +
       "</tbody></table></section>" +
@@ -144,7 +144,7 @@
   }
 
   function defaultUnknownRule() {
-    return "If a field was not visible on a public page at generation time, it is UNKNOWN. UNKNOWN is not zero and is not a ranking. We do not invent review counts, star ratings, map-pack positions, competitor names, or categories. A blocked fetch still emits this skeleton from intake so the file exists; it is not a paid audit of a live listing.";
+    return "If a field was not visible on a public page at generation time, it is UNKNOWN. UNKNOWN is not zero and is not a ranking. We do not invent review counts, star ratings, Google rankings, competitor names, or categories. A blocked fetch still emits this skeleton from intake so the file exists; it is not a paid audit of a live listing.";
   }
 
   function show(html) {

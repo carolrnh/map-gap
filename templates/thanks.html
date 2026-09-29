@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Your Map Pack Report — Map Gap{% endblock %}
+{% block title %}Your full check — Map Gap{% endblock %}
 {% block main %}
 <section class="hero tight">
-  <h1>Your Map Pack Report</h1>
+  <h1>Your full check</h1>
   <p class="lede">Download the one-pager and the sheet. You own the listing. Apply what you want. Skip what you don’t.</p>
 </section>
 <section class="card">
@@ -12,7 +12,7 @@
   <p>Payment is not connected on this instance. Visiting this page did not charge a card.</p>
   {% endif %}
   {% if rid %}
-  <p>Lookup reference: <code>{{ rid }}</code> — <a href="{{ url_for('teaser', rid=rid) }}">back to teaser</a></p>
+  <p>Lookup reference: <code>{{ rid }}</code> — <a href="{{ url_for('teaser', rid=rid) }}">back to your check</a></p>
   {% endif %}
 </section>
 <section class="card">

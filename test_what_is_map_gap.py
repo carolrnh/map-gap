@@ -1,10 +1,11 @@
-"""Name-ownership page: URL, copy, pricing, and FAQPage JSON-LD."""
+"""Name-ownership page and homepage copy: URL, pricing, and FAQPage JSON-LD."""
 
 from __future__ import annotations
 
 import json
 import re
 import unittest
+from pathlib import Path
 
 from app import app
 
@@ -25,18 +26,21 @@ class WhatIsMapGapTests(unittest.TestCase):
             "Map Gap at map-gap.onrender.com is an HVAC and plumbing Google Maps audit — not mapgaps.com.",
             html,
         )
-        self.assertIn("free teaser of three public gaps, full report $197", html)
+        self.assertIn("a free check of 3 things the shops above you have, and a $195 full check", html)
         self.assertIn("You keep the listing", html)
         self.assertIn("mapgaps.com or bioinformatics MAPGAPS", html)
         self.assertIn("What Map Gap is", html)
         self.assertIn("Who it’s for / not for", html)
         self.assertIn("Not the other MapGaps", html)
-        self.assertIn("Optional Listing Rebuild: $397", html)
-        self.assertIn("No monthly plan on this site", html)
-        self.assertIn("Run free teaser on homepage", html)
+        self.assertIn("Listing rebuild — $397", html)
+        self.assertIn("There is no monthly plan on this site.", html)
+        self.assertIn("Show my 3 free gaps", html)
         self.assertIn('href="/#lookup"', html)
         self.assertNotIn("/pricing", html)
+        self.assertNotIn("$197", html)
         self.assertNotRegex(html, r"guarantee(?:s|d)? (?:you )?#1")
+        source = Path("templates/what_is_map_gap.html").read_text(encoding="utf-8")
+        self.assertIn("TODO: Carol will add a sample report", source)
 
     def test_faqpage_json_ld(self):
         res = self.client.get("/what-is-map-gap")
@@ -64,24 +68,49 @@ class WhatIsMapGapTests(unittest.TestCase):
             ],
         )
         answers = " ".join(item["acceptedAnswer"]["text"] for item in data["mainEntity"])
-        self.assertIn("No. mapgaps.com is a different product", answers)
-        self.assertIn("No. Bioinformatics MAPGAPS is a different product", answers)
-        self.assertIn("$197", answers)
+        self.assertIn("mapgaps.com is a different product", answers)
+        self.assertIn("Bioinformatics MAPGAPS is a different product", answers)
+        self.assertIn("$195", answers)
         self.assertIn("$397", answers)
-        self.assertIn("HVAC and plumbing only", answers)
+        self.assertNotIn("$197", answers)
+        self.assertIn("HVAC and plumbing", answers)
 
     def test_homepage_cross_links(self):
         res = self.client.get("/")
         self.assertEqual(res.status_code, 200)
         html = res.get_data(as_text=True)
-        self.assertIn("Why isn’t my business showing up on Google Maps?", html)
-        self.assertIn(
-            "Map Gap (map-gap.onrender.com) — HVAC &amp; plumbing Google Maps audit. Not mapgaps.com.",
-            html,
-        )
-        self.assertIn("Is Map Gap the same as mapgaps.com?", html)
+        self.assertIn("Why isn’t my HVAC or plumbing shop showing up on Google Maps?", html)
+        self.assertIn("Google Maps checkup for HVAC &amp; plumbing shops", html)
+        self.assertNotIn("Not mapgaps.com", html)
+        self.assertNotIn("mapgaps.com", html)
         self.assertIn('href="/what-is-map-gap"', html)
-        self.assertIn("Show me why I’m not showing", html)
+        self.assertIn("Show my 3 free gaps", html)
+        self.assertIn("Free check", html)
+        self.assertIn("Full check — $195", html)
+        self.assertIn("Listing rebuild — $397", html)
+        self.assertNotIn("$197", html)
+        self.assertNotIn("Don’t pay", html)
+        self.assertNotIn("teaser", html.lower())
+        self.assertNotIn("map pack", html.lower())
+        self.assertNotIn("public gaps", html.lower())
+        self.assertIn("You keep the listing. No ranking is guaranteed.", html)
+        self.assertNotIn("For HVAC and plumbing shops only.", html)
+        landing = Path("templates/landing.html").read_text(encoding="utf-8")
+        self.assertIn("TODO: Carol will add a sample report", landing)
+
+    def test_legal_price_and_plain_checkout_sentence(self):
+        res = self.client.get("/legal")
+        html = res.get_data(as_text=True)
+        self.assertIn("$195", html)
+        self.assertIn("$397", html)
+        self.assertNotIn("$197", html)
+        self.assertNotIn("STRIPE_PAYMENT_LINK_URL", html)
+        self.assertIn("Payment not connected yet", html)
+
+    def test_cta_orange_meets_contrast_target(self):
+        css = Path("static/style.css").read_text(encoding="utf-8")
+        self.assertIn("--gap: #be5925;", css)
+        self.assertNotIn("#c45c26", css)
 
     def test_no_pricing_route(self):
         self.assertEqual(self.client.get("/pricing").status_code, 404)

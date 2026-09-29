@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from lookup import UNKNOWN
 
-PRICE = 197
+PRICE = 195
 
 GBP_FIELDS = [
     ("name", "Business name"),
@@ -98,7 +98,7 @@ def gaps_from_listing(listing: dict, sources: list[dict]) -> list[dict]:
                 "severity": "this_week",
                 "title": "We could not read your Google listing panel",
                 "detail": maps.get("detail")
-                or "Google did not include categories, photos, posts, or reviews in the HTML we fetched. The $197 report is a manual public-page pass plus this automated file.",
+                or "Google did not include categories, photos, posts, or reviews in the HTML we fetched. The $195 full check is a manual public-page pass plus this automated file.",
             }
         )
 
@@ -176,7 +176,7 @@ def build_reports(lookup: dict) -> dict:
                 "website": n.get("website") or UNKNOWN,
                 "category": n.get("category") or UNKNOWN,
                 "osm_url": n.get("osm_url") or UNKNOWN,
-                "note": "OpenStreetMap listing — not a Google map-pack rank",
+                "note": "OpenStreetMap listing — not a Google ranking",
             }
         )
 
@@ -212,7 +212,7 @@ def build_reports(lookup: dict) -> dict:
         "gaps_preview": [g for g in gaps if g["severity"] == "this_week"][:4],
         "sources": summary,
         "locked": [
-            "You vs up to 3 nearby trade listings (OSM, labeled — not map-pack rank)",
+            "You vs up to 3 nearby trade listings (OpenStreetMap, labeled — not a Google ranking)",
             "Full source log (what loaded, what Google blocked)",
             "This-week / this-month / later actions tied to observed gaps",
             "48-hour operator pass on the live Google listing: secondary categories, review velocity if dates are visible, posts, services",
@@ -242,7 +242,7 @@ def build_reports(lookup: dict) -> dict:
             {
                 "id": "rebuild",
                 "title": "Listing rebuild is a separate $397 one-time job (thank-you page only)",
-                "detail": "Not included in this $197 report: category list to add yourself, services copy, 8-week post calendar, review-reply templates. Offered after this report is paid. Not a monthly plan.",
+                "detail": "Separate from the $195 full check: category list to add yourself, services copy, 8-week post calendar, review-reply templates. Offered after this check is paid. Not a monthly plan.",
             },
         ],
         "legal": (

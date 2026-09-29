@@ -1,20 +1,20 @@
-# Copy lock — Offer pack v1b + CoS 2026-08-26 3:38pm ET
-
-**Source of truth:** `/workspace/offer-gbp-v1.md`
+# Copy lock — updated 2026-09-29 (Carol approved the homepage audit)
 
 Locked homepage strings (do not regress):
-- **Title / H1:** Why isn’t my business showing up on Google Maps?
-- **Who-filter (not the H1):** For HVAC and plumbing shops only.
-- **Button:** Show me why I’m not showing
-- **Suspension (under the form, not a CTA):** If Google *suspended* the listing, this report will not get it back. That’s an appeal to Google. Don’t pay $197 for that.
-- **SKUs:** T free teaser / A $197 / B $397 thank-you only. No $397/mo on this site.
 
-**App:** Flask via `./run.sh` on 127.0.0.1:8787. Template for `/` is `templates/landing.html`.
+- **Title / H1:** Why isn’t my HVAC or plumbing shop showing up on Google Maps?
+- **Header line:** Google Maps checkup for HVAC & plumbing shops
+- **Lede:** Paste your Google listing. In about a minute you’ll see 3 things the shops above you have that you don’t. Free, no login.
+- **Button:** Show my 3 free gaps
+- **Suspension (below the card, not under the button, and not the first price):** If Google *suspended* the listing, this check will not get it back. That’s an appeal to Google.
+- **Prices:** Free check / full check $195 / listing rebuild $397. No $397/mo on this site.
+- **Trust line (once):** You keep the listing. No ranking is guaranteed.
+- **mapgaps.com** disambiguation stays on `/what-is-map-gap` only.
+
+**Stripe:** `report.PRICE` is the label ($195). The card amount is the Stripe Payment Link, not a number in this repo.
 
 **Do not:**
-- Overwrite `lookup.py` / `generate.mjs` with a static H1 page
-- Put HVAC/plumbing in the H1
-- Turn checkout on until Raven confirms Stripe is theirs
-- Ping Raven about Stripe
 
-`generate.mjs` writes `reports/*.json` only.
+- Add testimonials, a named operator, a sample report image, or a refund promise until Carol supplies them. A TODO marks where a sample report would go.
+- Add an email or chat path.
+- Put “Not mapgaps.com” back in the header.
