@@ -12,14 +12,25 @@ import os
 import secrets
 import sqlite3
 import threading
+import time
 from pathlib import Path
 from urllib.parse import urlencode
 from xml.sax.saxutils import escape
 
 from flask import Flask, g, redirect, render_template, request, send_from_directory, url_for
 
+from limits import (
+    DAILY_CAP_MESSAGE,
+    IP_LIMIT_MESSAGE,
+    DailyCapReached,
+    IpRateLimited,
+    enforce_lookup_ip,
+    visitor_ip,
+)
 from lookup import UNKNOWN, run_lookup
-from report import PRICE, build_reports
+from places import PlacesError, google_places_enabled
+from places_lookup import persistable_record, places_link_view, refetch_places
+from report import PRICE, build_places_reports, build_reports
 from result_link import lookup_from_view, pack_link, unpack_link, view_from_lookup
 
 ROOT = Path(__file__).resolve().parent
@@ -36,6 +47,29 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.jinja_env.auto_reload = True
 
 _db_lock = threading.Lock()
+_places_cache: dict[str, tuple[float, dict, dict]] = {}
+PLACES_CACHE_TTL = 15 * 60
+PLACES_STORED = {"places_mode": True, "stored": "place_ids_only"}
+
+
+def remember_places_view(rid: str, lookup: dict, built: dict) -> None:
+    """Session memory only. Not sqlite, and not a signed link."""
+    _places_cache[rid] = (time.monotonic(), lookup, built)
+
+
+def places_cache_get(rid: str):
+    item = _places_cache.get(rid)
+    if not item:
+        return None
+    ts, lookup, built = item
+    if time.monotonic() - ts > PLACES_CACHE_TTL:
+        _places_cache.pop(rid, None)
+        return None
+    return lookup, built
+
+
+def clear_places_cache() -> None:
+    _places_cache.clear()
 
 
 def stripe_url() -> str:
@@ -89,6 +123,17 @@ init_db()
 
 def save_report(lookup: dict, built: dict) -> str:
     rid = secrets.token_urlsafe(8).replace("-", "").replace("_", "")[:12]
+    if lookup.get("places_mode"):
+        stored = persistable_record(lookup)
+        input_payload = stored["user_input"]
+        lookup_payload = stored
+        teaser_payload = PLACES_STORED
+        full_payload = PLACES_STORED
+    else:
+        input_payload = lookup.get("input") or {}
+        lookup_payload = lookup
+        teaser_payload = built["teaser"]
+        full_payload = built["full"]
     with _db_lock:
         conn = sqlite3.connect(DB_PATH)
         conn.execute(
@@ -96,10 +141,10 @@ def save_report(lookup: dict, built: dict) -> str:
             (
                 rid,
                 lookup.get("queried_at") or "",
-                json.dumps(lookup.get("input") or {}),
-                json.dumps(lookup),
-                json.dumps(built["teaser"]),
-                json.dumps(built["full"]),
+                json.dumps(input_payload),
+                json.dumps(lookup_payload),
+                json.dumps(teaser_payload),
+                json.dumps(full_payload),
             ),
         )
         conn.commit()
@@ -111,15 +156,20 @@ def load_report(rid: str) -> dict | None:
     row = db().execute("SELECT * FROM reports WHERE id = ?", (rid,)).fetchone()
     if not row:
         return None
-    return {
+    lookup = json.loads(row["lookup_json"])
+    rec = {
         "id": row["id"],
         "created_at": row["created_at"],
         "input": json.loads(row["input_json"]),
-        "lookup": json.loads(row["lookup_json"]),
+        "lookup": lookup,
         "teaser": json.loads(row["teaser_json"]),
         "full": json.loads(row["full_json"]),
         "unlocked": bool(row["unlocked"]),
     }
+    if lookup.get("places_mode"):
+        rec["places_mode"] = True
+        rec["stored"] = lookup
+    return rec
 
 
 def seo():
@@ -271,22 +321,57 @@ def lookup_post():
             ),
             400,
         )
-    lookup = run_lookup(name, city, listing_url)
-    built = build_reports(lookup)
+    form = {"q": q, "name": name, "city": city, "listing_url": listing_url}
+    try:
+        if google_places_enabled():
+            enforce_lookup_ip(visitor_ip(request.remote_addr or "", request.headers.get("X-Forwarded-For", "")))
+        lookup = run_lookup(name, city, listing_url)
+    except IpRateLimited:
+        return render_template("landing.html", form_error=IP_LIMIT_MESSAGE, form=form), 429
+    except DailyCapReached:
+        return render_template("landing.html", form_error=DAILY_CAP_MESSAGE, form=form), 429
+    except PlacesError:
+        return render_template("landing.html", form_error=PlacesError.user_message, form=form), 502
+    if lookup.get("places_mode"):
+        built = build_places_reports(lookup)
+    else:
+        built = build_reports(lookup)
     try:
         rid = save_report(lookup, built)
     except Exception:
         rid = secrets.token_urlsafe(8).replace("-", "").replace("_", "")[:12]
-    token = pack_link(view_from_lookup(lookup, rid))
+    if lookup.get("places_mode"):
+        token = pack_link(places_link_view(lookup, rid))
+        remember_places_view(token, lookup, built)
+    else:
+        token = pack_link(view_from_lookup(lookup, rid))
     return redirect(url_for("teaser", rid=token))
 
 
 def record_for(rid: str) -> dict | None:
     """Sqlite while this deploy still has the row; otherwise the signed link."""
     view = unpack_link(rid)
+    if view and view.get("places_mode"):
+        # The link holds place IDs only. Listing fields are fetched again below.
+        return {
+            "id": view.get("id") or "",
+            "created_at": view.get("queried_at") or "",
+            "input": view.get("user_input") or {},
+            "lookup": {"places_mode": True, "raw": {"places_mode": True, "thin": True, "bullets": []}},
+            "teaser": dict(PLACES_STORED),
+            "full": dict(PLACES_STORED),
+            "unlocked": False,
+            "places_mode": True,
+            "stored": {
+                "user_input": view.get("user_input") or {},
+                "subject_place_id": view.get("subject_place_id") or "",
+                "competitor_place_ids": view.get("competitor_place_ids") or [],
+                "outcome": view.get("outcome") or "",
+            },
+        }
     if view:
         stored = load_report(str(view.get("id") or ""))
-        if stored:
+        if stored and not stored.get("places_mode"):
             return stored
         lookup = lookup_from_view(view)
         built = build_reports(lookup)
@@ -307,12 +392,40 @@ def expired_page(prefill: str = ""):
     return render_template("expired.html", prefill=q), 404
 
 
+def _places_unavailable(message: str):
+    return render_template("landing.html", form_error=message), 429
+
+
 @app.get("/r/<rid>")
 @app.get("/teaser/<rid>")
 def teaser(rid: str):
     rec = record_for(rid)
     if not rec:
         return expired_page()
+    if rec.get("places_mode"):
+        cached = places_cache_get(rid)
+        if cached:
+            lookup, built = cached
+        elif not google_places_enabled():
+            return (
+                render_template(
+                    "landing.html",
+                    form_error="This check used Google Places. That source is off, so the listing cannot be loaded.",
+                ),
+                404,
+            )
+        else:
+            try:
+                lookup = refetch_places(rec.get("stored") or {})
+            except DailyCapReached:
+                return _places_unavailable(DAILY_CAP_MESSAGE)
+            except PlacesError:
+                return render_template("landing.html", form_error=PlacesError.user_message), 502
+            built = build_places_reports(lookup)
+        rec = dict(rec)
+        rec["lookup"] = lookup
+        rec["teaser"] = built["teaser"]
+        rec["full"] = built["full"]
     show_full = is_unlocked(rec)
     pay_href = None
     pay_label = "Payment not connected yet"
@@ -327,6 +440,7 @@ def teaser(rid: str):
     if vertical_ok is None:
         vertical_ok = True
     bullets = raw.get("bullets") or []
+    places_mode = bool(raw.get("places_mode") or rec.get("places_mode"))
     # Hide the $195 unlock when public data is thin (no competitors / no map presence).
     show_paywall = (not show_full) and (not thin) and bool(raw.get("unlock")) and vertical_ok
     return render_template(
@@ -342,6 +456,8 @@ def teaser(rid: str):
         vertical_ok=True if rec["teaser"].get("found") else vertical_ok,
         bullets=bullets,
         show_paywall=show_paywall,
+        places_mode=places_mode,
+        place_attributions=(rec.get("lookup") or {}).get("attributions") or [],
     )
 
 
@@ -378,7 +494,12 @@ def thanks():
 
 @app.get("/health")
 def health():
-    return {"ok": True, "payment_connected": payment_connected(), "price": PRICE}
+    return {
+        "ok": True,
+        "payment_connected": payment_connected(),
+        "price": PRICE,
+        "google_places": google_places_enabled(),
+    }
 
 
 @app.get("/favicon.ico")
