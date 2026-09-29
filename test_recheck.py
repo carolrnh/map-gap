@@ -139,7 +139,7 @@ class DurableLinkTests(unittest.TestCase):
         self.assertIn("Competitor report — $195", html)
         self.assertNotIn("Full check", html)
         self.assertIn(
-            "If the report doesn't find anything useful, reply to your receipt email for a full refund.",
+            "If the report doesn’t find anything useful, reply to your receipt email for a full refund.",
             html,
         )
         self.assertNotIn("chat support", html.lower())
@@ -191,6 +191,27 @@ class ChromeTests(unittest.TestCase):
         self.assertNotIn("In about a minute", home)
         self.assertIn("tap-link", home)
         self.assertIn("nowrap", home)
+        self.assertIn('class="tap-link desk-inline"', home)
+
+    def test_mobile_suspension_links_and_checkbox_tap_target(self):
+        hours = self.client.get("/google-business-hours-wrong").get_data(as_text=True)
+        self.assertIn(
+            'class="tap-link" href="/google-business-profile-suspended">Suspension page</a>',
+            hours,
+        )
+        audit = self.client.get("/google-business-profile-audit-free").get_data(as_text=True)
+        self.assertIn(
+            'class="tap-link" href="/google-business-profile-suspended">That’s Google’s appeal</a>',
+            audit,
+        )
+        suspended = self.client.get("/google-business-profile-suspended").get_data(as_text=True)
+        self.assertIn('<label class="live-ok"><input type="checkbox" id="live-ok">', suspended)
+        css = (ROOT / "static/style.css").read_text(encoding="utf-8")
+        self.assertIn("label.live-ok input", css)
+        self.assertIn("min-width: 44px", css)
+        self.assertIn("a.tap-link.desk-inline", css)
+        pay = self.client.get("/pay")
+        self.assertIn('name="robots" content="index,follow"', pay.get_data(as_text=True))
 
     def test_subpages_say_checkup_and_trust_line_once(self):
         for path in (

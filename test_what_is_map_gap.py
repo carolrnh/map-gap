@@ -92,12 +92,12 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertIn("Listing rebuild — $397", html)
         self.assertIn("In under a minute you’ll see", html)
         self.assertEqual(
-            html.count("If the report doesn't find anything useful, reply to your receipt email for a full refund."),
+            html.count("If the report doesn’t find anything useful, reply to your receipt email for a full refund."),
             1,
         )
         self.assertIn("Name, City or Maps link", html)
         self.assertIn(
-            "If the report doesn't find anything useful, reply to your receipt email for a full refund.",
+            "If the report doesn’t find anything useful, reply to your receipt email for a full refund.",
             html,
         )
         self.assertEqual(html.count("You keep the listing. No ranking is guaranteed."), 1)
@@ -122,7 +122,7 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertNotIn("on the machine that runs this app", html)
         self.assertIn("The link for your check contains the public result", html)
         self.assertIn(
-            "If the report doesn't find anything useful, reply to your receipt email for a full refund.",
+            "If the report doesn’t find anything useful, reply to your receipt email for a full refund.",
             html,
         )
 

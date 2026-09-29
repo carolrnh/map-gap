@@ -209,7 +209,7 @@ WHAT_IS_FAQS = [
         "a": (
             "The free check shows 3 things the shops above you have. The competitor report is $195. "
             "The listing rebuild is $397 after you have the competitor report. There is no monthly plan on this site. "
-            "If the report doesn't find anything useful, reply to your receipt email for a full refund."
+            "If the report doesn’t find anything useful, reply to your receipt email for a full refund."
         ),
     },
     {
