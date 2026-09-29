@@ -11,7 +11,7 @@ Locked homepage strings (do not regress):
 - **Timing:** Homepage lede is “In under a minute you’ll see…”. The loading note says “usually under a minute.” The expired page says “This check expired” once, then “Run it again (free, usually under a minute).”
 - **Trust line (once, in the footer):** You keep the listing. No ranking is guaranteed. Do not repeat that sentence on subpages.
 - **Wording:** checkup, not audit.
-- **Refund (approved, once on the homepage, in pricing):** If the report doesn't find anything useful, reply to your receipt email for a full refund. No chat and no phone.
+- **Refund (approved, once on the homepage, in pricing):** If the report doesn’t find anything useful, reply to your receipt email for a full refund. No chat and no phone.
 - **mapgaps.com** disambiguation stays on `/what-is-map-gap` only.
 
 **Stripe:** `report.PRICE` is the label ($195). The card amount is the Stripe Payment Link, not a number in this repo.
