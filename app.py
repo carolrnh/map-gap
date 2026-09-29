@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Map Gap — self-serve teaser + $197 paywall. No fake charges."""
+"""Map Gap — self-serve free check + $195 paywall. No fake charges.
+
+The dollar amount charged is set on the Stripe Payment Link
+(STRIPE_PAYMENT_LINK_URL), not in this repo. report.PRICE is the label.
+"""
 
 from __future__ import annotations
 
@@ -118,10 +122,10 @@ def load_report(rid: str) -> dict | None:
 
 def seo():
     return {
-        "title": "Why isn’t my business showing up on Google Maps?",
+        "title": "Why isn’t my HVAC or plumbing shop showing up on Google Maps?",
         "description": (
-            "Live listing but missing from Google Maps? See the public gaps. HVAC and plumbing shops only. "
-            "Free teaser. Full report $197. We don’t unsuspend listings and we don’t take over your profile."
+            "Paste your Google listing. See 3 things the shops above you have that you don’t. "
+            "Free check for HVAC and plumbing shops. Full check $195. Listing rebuild $397."
         ),
     }
 
@@ -130,47 +134,46 @@ WHAT_IS_FAQS = [
     {
         "q": "What is Map Gap?",
         "a": (
-            "Map Gap at map-gap.onrender.com is a one-time Map Pack report for US HVAC and plumbing shops: "
-            "free teaser of three public gaps, full report $197. You keep the listing. We do not take ownership, "
-            "promise #1, or unsuspend Google listings."
+            "Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops: "
+            "a free check of 3 things the shops above you have, and a $195 full check. You keep the listing."
         ),
     },
     {
         "q": "Is Map Gap the same as mapgaps.com?",
         "a": (
-            "No. mapgaps.com is a different product. This Map Gap is only local Google Maps gaps "
+            "mapgaps.com is a different product. This Map Gap is a Google Maps checkup "
             "for HVAC and plumbing."
         ),
     },
     {
         "q": "Is this MAPGAPS protein software?",
         "a": (
-            "No. Bioinformatics MAPGAPS is a different product. This Map Gap is only local Google Maps gaps "
+            "Bioinformatics MAPGAPS is a different product. This Map Gap is a Google Maps checkup "
             "for HVAC and plumbing."
         ),
     },
     {
         "q": "How much?",
         "a": (
-            "Free teaser of three public gaps. Full report $197. Optional listing rebuild $397 after you have "
-            "the report. No monthly plan on this site."
+            "The free check shows 3 things the shops above you have. The full check is $195. "
+            "The listing rebuild is $397 after you have the full check. There is no monthly plan on this site."
         ),
     },
     {
         "q": "Do you take over the listing?",
-        "a": "No. You keep the listing. We do not take ownership.",
+        "a": "You keep the listing. We do not take ownership.",
     },
     {
         "q": "Do you guarantee rankings?",
-        "a": "No. We do not promise #1 on Google or guarantee the map pack.",
+        "a": "We show you vs the shops Google shows first. We do not promise a ranking.",
     },
     {
         "q": "Can you unsuspend a Google listing?",
-        "a": "No. A suspension is an appeal to Google. Don’t pay $197 for that.",
+        "a": "A suspension is an appeal to Google. This check will not get a suspended listing back.",
     },
     {
         "q": "Is this for any local business?",
-        "a": "No. HVAC and plumbing only.",
+        "a": "This check is for HVAC and plumbing shops.",
     },
 ]
 
@@ -291,7 +294,7 @@ def teaser(rid: str):
     if vertical_ok is None:
         vertical_ok = True
     bullets = raw.get("bullets") or []
-    # Hide $197 unlock when public data is thin (no competitors / no map presence).
+    # Hide the $195 unlock when public data is thin (no competitors / no map presence).
     show_paywall = (not show_full) and (not thin) and bool(raw.get("unlock")) and vertical_ok
     return render_template(
         "teaser_v1b.html",

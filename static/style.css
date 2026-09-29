@@ -5,7 +5,7 @@
   --card: #fbf6ea;
   --line: #d4c7ae;
   --map: #1f2a24;
-  --gap: #c45c26;
+  --gap: #be5925;
   --gap-dark: #8e3d14;
   --ok: #2d5a3d;
   --warn: #8a6a16;
@@ -23,7 +23,7 @@ body {
   font-family: var(--ui);
   color: var(--ink);
   background:
-    radial-gradient(1200px 500px at 10% -10%, rgba(196,92,38,.08), transparent 50%),
+    radial-gradient(1200px 500px at 10% -10%, rgba(190,89,37,.08), transparent 50%),
     var(--paper);
   line-height: 1.55;
   font-size: 17px;
@@ -127,6 +127,11 @@ ul, ol { padding-left: 1.2em; }
 .faq dt { font-weight: 700; margin-top: 12px; }
 .faq dd { margin: 2px 0 0; color: var(--ink-2); }
 .legal-line { font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 14px; margin-top: 28px; }
+.price-list { margin: 0; }
+.price-list div { margin: 0 0 16px; }
+.price-list div:last-child { margin-bottom: 0; }
+.price-list dt { font-weight: 750; font-size: 18px; color: var(--ink); }
+.price-list dd { margin: 4px 0 0; }
 .foot { max-width: 860px; margin: 0 auto; padding: 8px 20px 48px; font-size: 13px; color: var(--ink-2); }
 .unk {
   display: inline-block;

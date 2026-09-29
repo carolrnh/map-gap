@@ -1,28 +1,27 @@
 {% extends "base.html" %}
-{% block title %}Full Map Pack Report — $197 — Map Gap{% endblock %}
+{% block title %}Full check — ${{ price }} — Map Gap{% endblock %}
 {% block main %}
 <section class="hero tight">
   <p class="kicker">Pay once</p>
-  <h1>Full Map Pack Report — $197</h1>
-  <p class="lede">Pay once. Get the one-pager + sheet. You keep the listing.</p>
+  <h1>Full check — ${{ price }}</h1>
+  <p class="lede">Pay once. Get the one-pager and the sheet. You keep the listing.</p>
 </section>
 
 <div class="card">
   <h2>What’s included</h2>
   <ul>
-    <li>You vs 3 map-pack competitors (categories, review velocity, posts, services)</li>
+    <li>You vs the 3 shops Google shows first (categories, review speed, posts, services)</li>
     <li>This-week vs later fix list</li>
-    <li>Delivery to the thank-you page after payment (no email required for v1)</li>
+    <li>Delivery on the thank-you page after payment (this version does not email the file)</li>
   </ul>
-  <h2>What’s not</h2>
-  <p>Ranking promise, fake reviews, we log into your Google, monthly management.</p>
+  <p>You keep the listing. No ranking is guaranteed.</p>
 
   {% if pay_href %}
-    <p><a class="btn" href="{{ pay_href }}">Pay $197</a></p>
+    <p><a class="btn" href="{{ pay_href }}">Pay ${{ price }}</a></p>
   {% else %}
     <p><button class="btn pay-off" type="button" disabled>Payment not connected yet</button></p>
   {% endif %}
-  <p class="hint">US card. No subscription. 2.9% + 30¢ processing when the link exists.</p>
+  <p class="hint">US card. One time. 2.9% + 30¢ processing when the link exists. The card is charged the amount set on the Stripe payment link.</p>
 </div>
 
 {% include "_faq.html" %}

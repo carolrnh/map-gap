@@ -9,8 +9,8 @@
 {% set missing = raw.missing_fields or [] %}
 {% set retry_q = rec.lookup.retry_q or '' %}
 {% set unread = thin or not teaser.found or not vertical_ok %}
-{% block title %}{% if unread and ident_name %}We couldn't read enough of {{ ident_name }}'s public listing — Map Gap{% elif unread %}We couldn't find that listing — Map Gap{% else %}Three public reasons you lose the map pack — Map Gap{% endif %}{% endblock %}
-{% block description %}Free public-data check. Review counts only if observed. Full check ${{ price }}.{% endblock %}
+{% block title %}{% if unread and ident_name %}We couldn't read enough of {{ ident_name }}'s public listing — Map Gap{% elif unread %}We couldn't find that listing — Map Gap{% else %}3 things the shops above you have — Map Gap{% endif %}{% endblock %}
+{% block description %}Free check from the public listing. Review counts only if we could read them. Full check ${{ price }}.{% endblock %}
 {% block main %}
 <section class="hero tight">
   {% if unread %}
@@ -26,8 +26,8 @@
       {% if maps_url %}{% if ident_city or ident_cat or listing.service_area %} · {% endif %}<a href="{{ maps_url }}" rel="noopener noreferrer">View on Google Maps</a>{% endif %}
     </p>
   {% else %}
-    <p class="kicker">Free check · public listing data</p>
-    <h1>Three public reasons you lose the map pack</h1>
+    <p class="kicker">Free check · public listing</p>
+    <h1>3 things the shops above you have</h1>
     <p class="lede">
       {% if ident_name %}{{ ident_name }}{% endif %}
       {% if ident_city %} · {{ ident_city }}{% endif %}
@@ -65,10 +65,10 @@
     </li>
     {% endfor %}
   </ol>
-  <p class="hint caveat">This is public listing data, not a ranking guarantee. The full report names the three competitors, the rest of the gaps, and what to change this week.</p>
+  <p class="hint caveat">This is public listing data. You keep the listing. No ranking is guaranteed. The full check names the three shops, the rest of what we could read, and what to change this week.</p>
   {% if show_paywall %}
-    <p><a class="btn" href="#pay">Unlock the full Map Pack Report — ${{ price }}</a></p>
-    <p><a href="#pay">See what’s in the report</a></p>
+    <p><a class="btn" href="#pay">Get the full check — ${{ price }}</a></p>
+    <p><a href="#pay">See what’s in the full check</a></p>
   {% endif %}
 {% endif %}
 
@@ -102,16 +102,15 @@
 
 {% if show_paywall %}
 <section class="paywall card" id="pay">
-  <h2>Full Map Pack Report — ${{ price }}</h2>
-  <p>Pay once. Get the one-pager + sheet. You keep the listing.</p>
+  <h2>Full check — ${{ price }}</h2>
+  <p>Pay once. Get the one-pager and the sheet. You keep the listing.</p>
   <h3>What’s included</h3>
   <ul>
-    <li>You vs 3 map-pack competitors (categories, review velocity, posts, services)</li>
+    <li>You vs the 3 shops Google shows first (categories, review speed, posts, services)</li>
     <li>This-week vs later fix list</li>
-    <li>Delivery to the thank-you page after payment (no email required for v1)</li>
+    <li>Delivery on the thank-you page after payment (this version does not email the file)</li>
   </ul>
-  <h3>What’s not</h3>
-  <p>Ranking promise, fake reviews, we log into your Google, monthly management.</p>
+  <p>You keep the listing. No ranking is guaranteed.</p>
   {% if pay_href %}
     <a class="btn pay-live" href="{{ pay_href }}" rel="noopener">Pay ${{ price }}</a>
     <p class="hint">US card. No subscription. 2.9% + 30¢ processing when the link exists.</p>
@@ -122,5 +121,5 @@
 </section>
 {% endif %}
 
-<p class="legal-line">This is research and copy for you to apply on your own Google Business Profile. You keep ownership. No ranking is guaranteed. We do not write fake reviews or change your legal business name.</p>
+<p class="legal-line">You keep the listing. No ranking is guaranteed.</p>
 {% endblock %}

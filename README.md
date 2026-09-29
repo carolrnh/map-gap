@@ -1,8 +1,10 @@
 # Map Gap
 
-Self-serve **Map Pack Report** for US HVAC and plumbing owners.
+Self-serve Google Maps checkup for US HVAC and plumbing owners.
 
-Flow: landing → business name + city **or** Google listing URL → free teaser (3 public bullets) → **$197** paywall. After pay, thank-you may offer **$397 Listing Rebuild**. There is **no monthly plan** on this site.
+Flow: landing → business name + city **or** Google listing URL → free check (3 things the shops above you have) → **$195** full check. After pay, thank-you may offer **$397 Listing Rebuild**. There is **no monthly plan** on this site.
+
+The $195 figure is the label in `report.PRICE`. The amount Stripe charges is set on the Payment Link in Stripe, not in this repo.
 
 Copy: offer pack v1b (`/workspace/offer-gbp-v1.md`). Raven does not walk or sell. No email. No DMs. No ranking guarantee. Public data only — review counts are never invented.
 
@@ -34,7 +36,7 @@ python3 -m venv .venv
 
 ## Stripe (optional)
 
-Do not fake charges. If `STRIPE_PAYMENT_LINK_URL` is unset, the $197 button reads **Payment not connected yet**.
+Do not fake charges. If `STRIPE_PAYMENT_LINK_URL` is unset, the $195 button reads **Payment not connected yet**. Update the Payment Link in Stripe if it still charges $197.
 
 ```bash
 cp .env.example .env
@@ -52,12 +54,12 @@ In Stripe, set the Payment Link after-payment URL to `http://127.0.0.1:8787/than
 |---|---|
 | `/` | Landing + lookup |
 | `/what-is-map-gap` | Name-ownership: this Map Gap vs mapgaps.com / MAPGAPS protein |
-| `POST /lookup` → `/r/<id>` | Free teaser (NAP, source log, UNKNOWN reviews) + $197 paywall |
-| `/pay/<id>` | $197 checkout stub |
+| `POST /lookup` → `/r/<id>` | Free check (NAP, source log, UNKNOWN reviews) + $195 paywall |
+| `/pay/<id>` | $195 checkout stub |
 | `/thanks` | Post-pay drop + $397 Listing Rebuild |
 | `/legal` | Legal / hard nos |
 
-If public data is thin, the teaser still lists what we could and could not fetch. Review counts stay UNKNOWN. The $197 button still appears; it is disabled with **Payment not connected yet** until a Stripe Payment Link is set. It does not fake a charge.
+If public data is thin, the check still lists what we could and could not fetch. Review counts stay UNKNOWN. The $195 button stays hidden on a thin result, and reads **Payment not connected yet** until a Stripe Payment Link is set. It does not fake a charge.
 
 ## Data
 
@@ -68,6 +70,6 @@ If public data is thin, the teaser still lists what we could and could not fetch
 
 ## Honesty
 
-- Never invent review counts, ratings, competitors, or map-pack positions.
+- Never invent review counts, ratings, competitors, or Google rankings.
 - No “#1 on Google.” You keep the listing.
 - No Alventra / Forge / 14-years claims.
