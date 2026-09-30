@@ -17,6 +17,9 @@ from places import (
     DETAILS_FIELD_MASK,
     SEARCH_ENTERPRISE_MASK,
     SEARCH_IDS_MASK,
+    category_label,
+    clean_website,
+    city_state_from_place,
     google_places_enabled,
     normalize_place,
     photo_label_for,
@@ -157,10 +160,13 @@ class PlacesClientTests(EnvCase):
             "places.regularOpeningHours",
             "places.photos",
             "places.primaryType",
+            "places.primaryTypeDisplayName",
+            "places.googleMapsTypeLabel",
             "places.nationalPhoneNumber",
         ):
             self.assertIn(field, mask.split(","))
         self.assertNotIn("places.reviews", mask.split(","))
+        self.assertNotIn("reviews", DETAILS_FIELD_MASK.split(","))
         body = json.loads(search_call["body"])
         self.assertTrue(body["includePureServiceAreaBusinesses"])
         self.assertEqual(body["pageSize"], 20)
@@ -182,6 +188,99 @@ class PlacesClientTests(EnvCase):
         self.assertEqual(ids_body["locationBias"]["circle"]["center"]["latitude"], 34.2087835)
         self.assertTrue(ids_body["includePureServiceAreaBusinesses"])
         self.assertTrue(all("preview" not in c["url"] for c in http.calls))
+        # No Place location on this subject, so the competitor search keeps the URL pin.
+        # The city still comes from formattedAddress, without the street.
+        search_body = json.loads(http.calls[2]["body"])
+        self.assertEqual(search_body["textQuery"], "hvac in Ventura CA")
+        self.assertNotIn("999 Secret", search_body["textQuery"])
+        self.assertEqual(search_body["locationBias"]["circle"]["center"]["latitude"], 34.2087835)
+
+    def test_maps_url_without_city_uses_place_city_and_coordinates(self):
+        http = FakeHTTP()
+        http.subject = _subject()
+        http.subject["primaryType"] = "general_contractor"
+        http.subject["primaryTypeDisplayName"] = {"text": "General contractor"}
+        http.subject["googleMapsTypeLabel"] = {"text": "HVAC contractor"}
+        http.subject["types"] = ["general_contractor", "point_of_interest", "establishment"]
+        http.subject["formattedAddress"] = ""
+        http.subject["addressComponents"] = [
+            {"longText": "Camarillo", "shortText": "Camarillo", "types": ["locality", "political"]},
+            {"longText": "California", "shortText": "CA", "types": ["administrative_area_level_1", "political"]},
+        ]
+        http.subject["location"] = {"latitude": 34.2164, "longitude": -119.0376}
+        result = run_places_lookup("", "", RODAN_URL, http=http)
+        ids_body = json.loads(http.calls[0]["body"])
+        search_body = json.loads(http.calls[2]["body"])
+        self.assertEqual(ids_body["locationBias"]["circle"]["center"]["latitude"], 34.2087835)
+        self.assertEqual(search_body["textQuery"], "hvac in Camarillo CA")
+        self.assertEqual(search_body["locationBias"]["circle"]["center"]["latitude"], 34.2164)
+        self.assertEqual(search_body["locationBias"]["circle"]["center"]["longitude"], -119.0376)
+        self.assertEqual(result["listing"]["category"], "HVAC contractor")
+        self.assertFalse(result["listing"]["address"])
+        self.assertEqual(result["listing"]["city"], "Camarillo CA")
+        self.assertEqual(result["raw"]["city_source"], "place")
+        details_mask = http.calls[1]["headers"]["X-Goog-FieldMask"].split(",")
+        search_mask = http.calls[2]["headers"]["X-Goog-FieldMask"].split(",")
+        self.assertIn("addressComponents", details_mask)
+        self.assertIn("location", details_mask)
+        self.assertIn("googleMapsTypeLabel", details_mask)
+        self.assertIn("primaryTypeDisplayName", details_mask)
+        self.assertNotIn("addressComponents", search_mask)
+        self.assertNotIn("location", search_mask)
+
+    def test_new_fields_stay_inside_the_enterprise_sku(self):
+        # Place Data Fields (New), checked 2026-09-24. These raise the call to
+        # Enterprise + Atmosphere, which this check does not use.
+        atmosphere = {
+            "reviews",
+            "reviewSummary",
+            "editorialSummary",
+            "generativeSummary",
+            "paymentOptions",
+            "parkingOptions",
+            "outdoorSeating",
+            "servesBeer",
+            "allowsDogs",
+            "goodForChildren",
+            "liveMusic",
+            "delivery",
+            "dineIn",
+            "takeout",
+            "reservable",
+            "evChargeOptions",
+            "fuelOptions",
+            "neighborhoodSummary",
+            "routingSummaries",
+        }
+        details = set(DETAILS_FIELD_MASK.split(","))
+        search = {field.split(".", 1)[1] for field in SEARCH_ENTERPRISE_MASK.split(",")}
+        self.assertFalse(atmosphere & details)
+        self.assertFalse(atmosphere & search)
+        # Below Enterprise: Pro (googleMapsTypeLabel, primaryTypeDisplayName)
+        # and Essentials (addressComponents, location). They do not raise the SKU.
+        for field in ("googleMapsTypeLabel", "primaryTypeDisplayName", "primaryType", "addressComponents", "location"):
+            self.assertIn(field, details)
+        self.assertEqual(SEARCH_IDS_MASK, "places.id")
+
+    def test_one_gap_unlocks_and_zero_gaps_do_not(self):
+        http = FakeHTTP()
+        http.subject = _subject()
+        http.subject["rating"] = 4.8
+        http.subject["userRatingCount"] = 400
+        one = run_places_lookup("Rodan Heating and Air", "Camarillo", "", http=http)
+        self.assertEqual([b["kind"] for b in one["raw"]["bullets"]], ["photos"])
+        self.assertTrue(one["raw"]["unlock"])
+        self.assertEqual(one["outcome"], "few_gaps")
+
+        quiet = FakeHTTP()
+        quiet.subject = _subject()
+        quiet.subject["rating"] = 4.8
+        quiet.subject["userRatingCount"] = 400
+        quiet.subject["photos"] = [{"name": f"places/x/photos/{n}"} for n in range(10)]
+        none = run_places_lookup("Rodan Heating and Air", "Camarillo", "", http=quiet)
+        self.assertEqual(none["raw"]["bullets"], [])
+        self.assertFalse(none["raw"]["unlock"])
+        self.assertEqual(none["outcome"], "few_gaps")
 
     def test_cap_blocks_before_http(self):
         os.environ["PLACES_DAILY_CAP"] = "0"
@@ -292,8 +391,133 @@ class GapTests(unittest.TestCase):
         ]
         gaps = select_gaps(subject, competitors)
         self.assertEqual([g["kind"] for g in gaps], ["category"])
-        self.assertIn("primary type", gaps[0]["body"].lower())
+        self.assertIn("category", gaps[0]["body"].lower())
+        self.assertIn("General contractor", gaps[0]["body"])
+        self.assertIn("HVAC contractor", gaps[0]["body"])
         self.assertNotIn("Posts", gaps[0]["body"])
+
+    def test_maps_label_replaces_general_contractor(self):
+        raw = {
+            "primaryType": "general_contractor",
+            "primaryTypeDisplayName": {"text": "General contractor"},
+            "googleMapsTypeLabel": {"text": "HVAC contractor"},
+            "types": ["general_contractor", "point_of_interest", "establishment"],
+        }
+        self.assertEqual(category_label(raw), "HVAC contractor")
+        self.assertEqual(normalize_place(raw)["category"], "HVAC contractor")
+        specific = {
+            "primaryType": "general_contractor",
+            "primaryTypeDisplayName": {"text": "General contractor"},
+            "types": ["general_contractor", "hvac_contractor", "point_of_interest"],
+        }
+        self.assertEqual(category_label(specific), "HVAC contractor")
+        named = {
+            "primaryType": "hvac_contractor",
+            "primaryTypeDisplayName": {"text": "HVAC contractor"},
+            "types": ["hvac_contractor", "general_contractor"],
+        }
+        self.assertEqual(category_label(named), "HVAC contractor")
+
+    def test_same_public_category_is_not_a_gap(self):
+        subject = {
+            "photo_count": 10,
+            "review_count": 5,
+            "rating": 5,
+            "website": "x",
+            "hours_listed": True,
+            "phone": "1",
+            "primary_type": "general_contractor",
+            "category": "HVAC contractor",
+        }
+        comp = {
+            "name": "Other",
+            "photo_count": 10,
+            "review_count": 5,
+            "rating": 5,
+            "website": "y",
+            "hours_listed": True,
+            "phone": "2",
+            "primary_type": "hvac_contractor",
+            "category": "HVAC contractor",
+        }
+        self.assertEqual(select_gaps(subject, [comp]), [])
+
+    def test_missing_rating_and_reviews_are_not_gaps(self):
+        subject = {
+            "name": "Rodan Heating and Air",
+            "review_count": None,
+            "rating": None,
+            "website": "https://a.example",
+            "hours_listed": True,
+            "photo_count": 1,
+            "primary_type": "hvac_contractor",
+            "category": "HVAC contractor",
+            "phone": "1",
+        }
+        comp = {
+            "name": "Other",
+            "review_count": 400,
+            "rating": 5.0,
+            "website": "https://b.example",
+            "hours_listed": True,
+            "photo_count": 10,
+            "primary_type": "hvac_contractor",
+            "category": "HVAC contractor",
+            "phone": "2",
+        }
+        kinds = [g["kind"] for g in select_gaps(subject, [comp, comp, comp])]
+        self.assertEqual(kinds, ["photos"])
+
+    def test_zero_reviews_still_count_as_a_gap(self):
+        subject = {
+            "review_count": 0,
+            "rating": 5,
+            "website": "a",
+            "hours_listed": True,
+            "photo_count": 10,
+            "phone": "1",
+            "category": "HVAC contractor",
+            "primary_type": "hvac_contractor",
+        }
+        comp = {
+            "name": "Other",
+            "review_count": 10,
+            "rating": 5,
+            "website": "b",
+            "hours_listed": True,
+            "photo_count": 10,
+            "phone": "2",
+            "category": "HVAC contractor",
+            "primary_type": "hvac_contractor",
+        }
+        self.assertEqual([g["kind"] for g in select_gaps(subject, [comp])], ["review_count"])
+
+    def test_city_falls_back_to_formatted_address(self):
+        city, state = city_state_from_place(
+            {
+                "addressComponents": [
+                    {"longText": "Camarillo", "shortText": "Camarillo", "types": ["locality", "political"]},
+                    {"longText": "California", "shortText": "CA", "types": ["administrative_area_level_1"]},
+                ]
+            }
+        )
+        self.assertEqual((city, state), ("Camarillo", "CA"))
+        city, state = city_state_from_place({"formattedAddress": "Camarillo, CA 93010, USA"})
+        self.assertEqual((city, state), ("Camarillo", "CA"))
+
+    def test_strips_tracking_params_from_websites(self):
+        shown = normalize_place(
+            {
+                "websiteUri": "https://richco.example/book?utm_source=directories&utm_medium=organic&gclid=abc&page=services"
+            }
+        )["website"]
+        self.assertEqual(shown, "https://richco.example/book?page=services")
+        self.assertNotIn("utm_", shown)
+        self.assertEqual(
+            clean_website("https://richco.example/?utm_source=directories&utm_medium=organic"),
+            "https://richco.example/",
+        )
+        self.assertEqual(clean_website("https://example.com/path"), "https://example.com/path")
 
     def test_ten_plus_photos_are_not_a_gap_against_ten_plus(self):
         subject = {"photo_count": 10, "review_count": 5, "rating": 5, "website": "x", "hours_listed": True, "phone": "1", "primary_type": "hvac_contractor", "category": "HVAC"}
@@ -465,6 +689,57 @@ class StorageTests(EnvCase):
         self.assertNotIn(SECRET_SITE, blocked_html)
         self.assertNotIn(SECRET_PROVIDER, blocked_html)
         self.assertEqual(len(http.calls), 3)
+
+    def test_one_gap_still_shows_the_paid_offer(self):
+        http = FakeHTTP()
+        http.subject = _subject()
+        http.subject["rating"] = 4.8
+        http.subject["userRatingCount"] = 400
+        http.subject["photos"] = [{"name": "places/x/photos/only"}]
+        client = appmod.app.test_client()
+        with patch("places._raw_http", http):
+            posted = client.post("/lookup", data={"q": "Rodan Heating and Air, Camarillo"})
+        self.assertEqual(posted.status_code, 302)
+        html = client.get(posted.headers["Location"]).get_data(as_text=True)
+        self.assertIn("You're close. Here's what still separates you from the top 3", html)
+        self.assertIn("Competitor report — $195", html)
+        self.assertIn("Payment not connected yet", html)
+        self.assertNotIn("stays off", html)
+        self.assertNotIn("1 thing the shops above you have", html)
+        self.assertIn("Photos", html)
+
+    def test_no_gaps_hides_the_paid_offer(self):
+        http = FakeHTTP()
+        http.subject = _subject()
+        http.subject["rating"] = 4.8
+        http.subject["userRatingCount"] = 400
+        http.subject["photos"] = [{"name": f"places/x/photos/{n}"} for n in range(10)]
+        client = appmod.app.test_client()
+        with patch("places._raw_http", http):
+            posted = client.post("/lookup", data={"q": "Rodan Heating and Air, Camarillo"})
+        html = client.get(posted.headers["Location"]).get_data(as_text=True)
+        self.assertIn("No gap on the fields Places returns", html)
+        self.assertNotIn("<h2>Competitor report — $195</h2>", html)
+        self.assertNotIn('href="#pay"', html)
+        self.assertNotIn("You're close", html)
+        self.assertIn("stays off when these fields show no gap", html)
+
+    def test_missing_rating_and_reviews_say_not_listed(self):
+        http = FakeHTTP()
+        http.subject = _subject()
+        http.subject.pop("rating")
+        http.subject.pop("userRatingCount")
+        http.subject["websiteUri"] = "https://richco.example/book?utm_source=directories&utm_medium=organic"
+        client = appmod.app.test_client()
+        with patch("places._raw_http", http):
+            posted = client.post("/lookup", data={"q": "Rodan Heating and Air, Camarillo"})
+        html = client.get(posted.headers["Location"]).get_data(as_text=True)
+        self.assertIn("not listed", html)
+        self.assertNotIn("UNKNOWN", html)
+        self.assertNotIn("utm_", html)
+        self.assertIn("https://richco.example/book", html)
+        self.assertIn("Photos", html)
+        self.assertNotIn(">Reviews<", html)
 
     def test_flag_off_still_uses_nominatim(self):
         os.environ["USE_GOOGLE_PLACES"] = "false"

@@ -9,7 +9,8 @@
 {% set missing = raw.missing_fields or [] %}
 {% set retry_q = rec.lookup.retry_q or '' %}
 {% set unread = thin or not teaser.found or not vertical_ok %}
-{% block title %}{% if unread and ident_name %}We couldn't read enough of {{ ident_name }}'s public listing — Map Gap{% elif unread %}We couldn't find that listing — Map Gap{% else %}3 things the shops above you have — Map Gap{% endif %}{% endblock %}
+{% set gap_n = bullets|length %}
+{% block title %}{% if unread and ident_name %}We couldn't read enough of {{ ident_name }}'s public listing — Map Gap{% elif unread %}We couldn't find that listing — Map Gap{% elif places_mode and gap_n > 0 and gap_n < 3 %}You're close. Here's what still separates you from the top 3 — Map Gap{% elif places_mode and gap_n == 0 and teaser.found %}No gap on the fields Places returns — Map Gap{% else %}3 things the shops above you have — Map Gap{% endif %}{% endblock %}
 {% block description %}Free check from the public listing. Review counts only if we could read them. Competitor report ${{ price }}.{% endblock %}
 {% block main %}
 <section class="hero tight">
@@ -28,10 +29,10 @@
   {% else %}
     {% if places_mode %}
     <p class="kicker">Free check · Google Places</p>
-    {% if bullets|length == 1 %}
-      <h1>1 thing the shops above you have</h1>
+    {% if gap_n > 0 and gap_n < 3 %}
+      <h1>You're close. Here's what still separates you from the top 3</h1>
     {% elif bullets %}
-      <h1>{{ bullets|length }} things the shops above you have</h1>
+      <h1>{{ gap_n }} things the shops above you have</h1>
     {% else %}
       <h1>No gap on the fields Places returns</h1>
     {% endif %}
@@ -39,6 +40,9 @@
       {% if ident_name %}{{ ident_name }}{% endif %}
       {% if ident_city %} · {{ ident_city }}{% endif %}
     </p>
+    {% if gap_n > 0 and gap_n < 3 %}
+    <p class="lede">Places shows {{ gap_n }} gap{% if gap_n != 1 %}s{% endif %} on the fields this check compares. The ${{ price }} report names the three shops.</p>
+    {% endif %}
     {% else %}
     <p class="kicker">Free check · public listing</p>
     <h1>3 things the shops above you have</h1>
@@ -86,7 +90,7 @@
     {% else %}
     <p class="result-lead">Review count, star rating, website, hours, photos, category, and phone did not show a gap we can report.</p>
     {% endif %}
-    <p class="hint caveat">These shops are the ones Google Places returned for this search.{% if bullets|length < 3 %} The competitor report stays off until there are 3 gaps we can show from these fields.{% endif %}</p>
+    <p class="hint caveat">These shops are the ones Google Places returned for this search.{% if gap_n == 0 %} The competitor report stays off when these fields show no gap.{% elif gap_n < 3 %} You're close. Here's what still separates you from the top 3.{% endif %}</p>
     <p class="gmaps-attr" translate="no">Google Maps</p>
   </div>
   {% else %}
@@ -118,7 +122,7 @@
       {% if teaser.nap.website and teaser.nap.website != unknown %}<tr><th>Website</th><td>{{ teaser.nap.website }}</td></tr>{% endif %}
       {% if teaser.nap.hours and teaser.nap.hours != unknown %}<tr><th>Hours</th><td>{{ teaser.nap.hours }}</td></tr>{% endif %}
       {% if places_mode %}
-      <tr><th>Star rating</th><td>{% if teaser.rating is not none %}{{ teaser.rating }}{% else %}<span class="unk">UNKNOWN</span>{% endif %}</td></tr>
+      <tr><th>Star rating</th><td>{% if teaser.rating is not none %}{{ teaser.rating }}{% else %}<span class="unk">not listed</span>{% endif %}</td></tr>
       <tr><th>Photos</th><td>{{ listing.photo_label or unknown }} <span class="muted">(0–9 or 10+)</span></td></tr>
       {% endif %}
       <tr>
@@ -126,6 +130,9 @@
         <td>
           {% if teaser.review_count is not none %}
             {{ teaser.review_count }}{% if teaser.review_source %} <span class="muted">({{ teaser.review_source }})</span>{% endif %}
+          {% elif places_mode %}
+            <span class="unk">not listed</span>
+            <div class="hint">Google Places did not return a review count. Not listed is not zero.</div>
           {% else %}
             <span class="unk">UNKNOWN</span>
             <div class="hint">{{ teaser.review_unknown_reason }}</div>
@@ -135,7 +142,7 @@
     </tbody>
   </table>
   {% if places_mode %}
-  <p class="hint">UNKNOWN is not zero. Google Posts and a 90-day review count are not in Places, so this check does not report them.</p>
+  <p class="hint">Not listed is not zero. Google Posts and a 90-day review count are not in Places, so this check does not report them.</p>
   <p class="gmaps-attr" translate="no">Google Maps</p>
   {% for line in place_attributions %}
   <p class="hint" translate="no">{{ line }}</p>
@@ -150,6 +157,9 @@
 {% if show_paywall %}
 <section class="paywall card" id="pay">
   <h2>Competitor report — ${{ price }}</h2>
+  {% if places_mode and gap_n > 0 and gap_n < 3 %}
+  <p>You're close. Here's what still separates you from the top 3. This free check lists the {{ gap_n }} gap{% if gap_n != 1 %}s{% endif %} Places returned. The report names the three shops and what to change.</p>
+  {% endif %}
   <p>Pay once. You get the written report on the thank-you page. You keep the listing.</p>
   <h3>What’s included</h3>
   <ul>
