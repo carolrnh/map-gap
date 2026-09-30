@@ -32,7 +32,7 @@
   <p>Paid before delivery of the written report. If card checkout is not connected yet, the site will not collect a card and will show “Payment not connected yet.” There is no simulated checkout. The amount on the card is the amount set on the Stripe payment link.</p>
   <p>If the report doesn’t find anything useful, reply to your receipt email for a full refund. That receipt comes from the business through Stripe. There is no chat and no phone number.</p>
   <p>Unless Google Places is turned on, the free check uses public map listings (OpenStreetMap Nominatim) and, when you paste a Google URL, that public page. How fast reviews come in, and Google posts, stay UNKNOWN unless they were actually on the page we could read. UNKNOWN is not zero.</p>
-  <p>If the operator turns on the Google Places API, the check uses that API instead. The gaps come from review count, star rating, website, hours, photos (shown as 0–9 or 10+, because Places returns at most 10), primary category, and phone. Google Posts and 90-day review velocity are not in that API, so the check does not report them and does not invent them.</p>
+  <p>If the operator turns on the Google Places API, the check uses that API instead. The gaps come from review count, star rating, website, hours, photos (shown as 0–9 or 10+, because Places returns at most 10), primary category, and phone. Google Posts and 90-day review velocity are not in that API, so the check does not report them and does not invent them. If a star rating or review count does not come back, the page says not listed. Not listed is not zero, and it is not counted as a gap.</p>
 </section>
 
 <section class="card">

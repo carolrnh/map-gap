@@ -319,7 +319,7 @@ def build_places_reports(lookup: dict) -> dict:
         "review_source": "Google Places" if reviews is not None else None,
         "review_unknown_reason": None
         if reviews is not None
-        else "Google Places did not return a review count for this listing. A missing count is not zero.",
+        else "Google Places did not return a review count. Not listed is not zero.",
         "gaps_preview": raw.get("bullets") or [],
     }
     full = {

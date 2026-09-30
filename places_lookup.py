@@ -101,13 +101,17 @@ def _vertical(subject: dict) -> str:
     return "unknown"
 
 
-def _city_label(user_city: str, address: str) -> str:
-    if (user_city or "").strip():
-        return user_city.strip()
-    city, state = lookup._city_state_from_address(address or "")
-    if city and state and state not in city:
-        return f"{city} {state}"
-    return city
+def _city_label(user_city: str, subject: dict) -> tuple[str, str]:
+    """Visitor's city when they typed one, otherwise the city from Place Details."""
+    typed = (user_city or "").strip()
+    city = (subject.get("city") or "").strip()
+    state = (subject.get("state") or "").strip()
+    if typed:
+        return typed, state
+    city_parts = {part.lower() for part in city.split()}
+    if city and state and state.lower() not in city_parts:
+        return f"{city} {state}", state
+    return city, state
 
 
 def _empty(user: dict, outcome: str, thin_code: str, thin_reason: str, *, vertical_ok: bool = True) -> dict[str, Any]:
@@ -221,7 +225,8 @@ def _pack(user: dict, subject: dict, competitors: list[dict], city_label: str, s
             }
         )
     thin = not competitors
-    unlock = bool(competitors) and len(gaps) >= 3
+    # 1 or 2 real gaps still get the paid offer. Zero gaps, and no competitors, do not.
+    unlock = bool(competitors) and len(gaps) >= 1
     if not competitors:
         outcome = "no_competitors"
         thin_code = "no_competitors"
@@ -272,7 +277,7 @@ def _pack(user: dict, subject: dict, competitors: list[dict], city_label: str, s
             "vertical_ok": True,
             "missing_fields": missing,
             "bullets": gaps,
-            "city_source": "input" if city else "",
+            "city_source": "input" if city else ("place" if city_label else ""),
             "unlock": unlock,
             "subject": {"service_area": listing["service_area"], "state": state, "city": city_label},
         },
@@ -289,8 +294,10 @@ def _from_subject_id(
 ) -> dict[str, Any]:
     subject = fetch_place(subject_id, api_key=api_key(), http=http)
     vert = _vertical(subject)
-    city_label = _city_label(user.get("city") or "", "" if subject.get("pure_service_area") else subject.get("address") or "")
-    _city, state = lookup._city_state_from_address("" if subject.get("pure_service_area") else subject.get("address") or "")
+    city_label, state = _city_label(user.get("city") or "", subject)
+    # A Maps URL pin can sit far from the shop. Bias competitors to the Place location.
+    if isinstance(subject.get("lat"), (int, float)) and isinstance(subject.get("lon"), (int, float)):
+        bias = circle_bias(float(subject["lat"]), float(subject["lon"]))
     if vert == "other":
         result = _empty(
             user,
@@ -306,7 +313,12 @@ def _from_subject_id(
         result["attributions"] = list(subject.get("attributions") or [])
         result["raw"]["vertical_ok"] = False
         return result
-    term = trade_term(subject.get("primary_type") or "", subject.get("types") or [], subject.get("name") or "")
+    term = trade_term(
+        subject.get("primary_type") or "",
+        subject.get("types") or [],
+        subject.get("name") or "",
+        subject.get("category") or "",
+    )
     query = competitor_query(term, city_label)
     found = search_competitors(query, api_key=api_key(), location_bias=bias, http=http)
     chosen = pick_competitors(found, subject.get("place_id") or subject_id, preferred_ids)
