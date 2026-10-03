@@ -14,15 +14,21 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import lookup
+from limits import DailyCapReached
 from places import (
+    COMPARISON_COUNT,
+    COMPETITOR_RADII_M,
+    PlacesError,
     api_key,
     circle_bias,
-    competitor_query,
+    competitor_text,
     fetch_place,
     pick_competitors,
+    rectangle_restriction,
     search_competitors,
     search_text_ids,
     select_gaps,
+    select_local_competitors,
     trade_term,
 )
 
@@ -211,19 +217,22 @@ def _pack(user: dict, subject: dict, competitors: list[dict], city_label: str, s
                 attributions.append(line)
     nearby = []
     for place in competitors:
-        nearby.append(
-            {
-                "name": place.get("name"),
-                "phone": place.get("phone") or None,
-                "website": place.get("website") or None,
-                "category": place.get("category") or None,
-                "rating": place.get("rating"),
-                "review_count": place.get("review_count"),
-                "photo_label": place.get("photo_label"),
-                "place_id": place.get("place_id"),
-                "note": "Google Places search result",
-            }
-        )
+        row = {
+            "name": place.get("name"),
+            "phone": place.get("phone") or None,
+            "website": place.get("website") or None,
+            "category": place.get("category") or None,
+            "rating": place.get("rating"),
+            "review_count": place.get("review_count"),
+            "photo_label": place.get("photo_label"),
+            "place_id": place.get("place_id"),
+            "city": place.get("city") or None,
+            "state": place.get("state") or None,
+            "note": "Google Places search result",
+        }
+        if isinstance(place.get("distance_m"), (int, float)):
+            row["distance_m"] = int(round(float(place["distance_m"])))
+        nearby.append(row)
     thin = not competitors
     # 1 or 2 real gaps still get the paid offer. Zero gaps, and no competitors, do not.
     unlock = bool(competitors) and len(gaps) >= 1
@@ -284,6 +293,100 @@ def _pack(user: dict, subject: dict, competitors: list[dict], city_label: str, s
     }
 
 
+def geocode_us_city(city_label: str) -> tuple[float, float] | None:
+    """City centroid when Place Details has no pin. Nominatim, US only. Not a Places call."""
+    text = " ".join((city_label or "").split())
+    if not text:
+        return None
+    lowered = text.lower()
+    if "usa" not in lowered and "united states" not in lowered:
+        text = f"{text}, USA"
+    try:
+        hits = lookup._nominatim({"q": text, "limit": "1"})
+    except Exception:
+        logger.warning("city geocode failed")
+        return None
+    if not hits:
+        return None
+    try:
+        lat, lon = float(hits[0]["lat"]), float(hits[0]["lon"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return None
+    return lat, lon
+
+
+def _bias_center(bias: dict | None) -> tuple[float, float] | None:
+    if not isinstance(bias, dict):
+        return None
+    center = (bias.get("circle") or {}).get("center") or {}
+    lat, lon = center.get("latitude"), center.get("longitude")
+    if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
+        return float(lat), float(lon)
+    return None
+
+
+def _anchor(subject: dict, bias: dict | None, city_label: str) -> tuple[float, float] | None:
+    """Shop pin, then the Maps URL pin, then the city centroid. Never a national search."""
+    lat, lon = subject.get("lat"), subject.get("lon")
+    if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
+        return float(lat), float(lon)
+    pinned = _bias_center(bias)
+    if pinned:
+        return pinned
+    return geocode_us_city(city_label)
+
+
+def _gather_competitors(
+    subject: dict,
+    subject_id: str,
+    term: str,
+    anchor: tuple[float, float],
+    preferred_ids: list[str] | None,
+    http,
+) -> list[dict]:
+    """Widen the hard radius until 3 local shops come back, or the widest ring is done.
+
+    Shops from a tighter ring stay in the pool. A wider search can rank a farther
+    city first and omit the nearer shops, and those nearer shops are the ones to keep.
+    """
+    pooled: list[dict] = []
+    seen: set[str] = set()
+    for radius in COMPETITOR_RADII_M:
+        try:
+            found = search_competitors(
+                competitor_text(term),
+                api_key=api_key(),
+                location_restriction=rectangle_restriction(anchor[0], anchor[1], radius),
+                http=http,
+            )
+        except (DailyCapReached, PlacesError):
+            if pooled:
+                logger.warning("stopped widening competitors after a places error")
+                break
+            raise
+        batch = select_local_competitors(
+            found,
+            subject_id,
+            anchor=anchor,
+            radius_m=radius,
+            term=term,
+            subject_state=subject.get("state") or "",
+        )
+        for place in batch:
+            pid = place.get("place_id") or ""
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            place["matched_radius_m"] = radius
+            pooled.append(place)
+        logger.info("places competitors radius_m=%s kept=%s", int(radius), len(pooled))
+        if len(pooled) >= COMPARISON_COUNT:
+            break
+    return pick_competitors(pooled, subject.get("place_id") or subject_id, preferred_ids)
+
+
 def _from_subject_id(
     subject_id: str,
     user: dict,
@@ -295,9 +398,6 @@ def _from_subject_id(
     subject = fetch_place(subject_id, api_key=api_key(), http=http)
     vert = _vertical(subject)
     city_label, state = _city_label(user.get("city") or "", subject)
-    # A Maps URL pin can sit far from the shop. Bias competitors to the Place location.
-    if isinstance(subject.get("lat"), (int, float)) and isinstance(subject.get("lon"), (int, float)):
-        bias = circle_bias(float(subject["lat"]), float(subject["lon"]))
     if vert == "other":
         result = _empty(
             user,
@@ -319,9 +419,22 @@ def _from_subject_id(
         subject.get("name") or "",
         subject.get("category") or "",
     )
-    query = competitor_query(term, city_label)
-    found = search_competitors(query, api_key=api_key(), location_bias=bias, http=http)
-    chosen = pick_competitors(found, subject.get("place_id") or subject_id, preferred_ids)
+    # The shop pin wins over a Maps URL center. A city in the text query is not
+    # a location: Google ignores locationBias when the query names a city, and
+    # pick used to keep the first 3 hits with no distance check.
+    anchor = _anchor(subject, bias, city_label)
+    if anchor is None:
+        logger.info("places competitors skipped: no anchor")
+        chosen = []
+    else:
+        chosen = _gather_competitors(
+            subject,
+            subject.get("place_id") or subject_id,
+            term,
+            anchor,
+            preferred_ids,
+            http,
+        )
     return _pack(user, subject, chosen, city_label, state)
 
 
