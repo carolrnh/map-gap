@@ -1,8 +1,9 @@
 """Google Places API (New) client.
 
-Pattern A, about $0.055 per check before free usage:
+Pattern A, about $0.055 per check before free usage when the first radius is enough:
   * subject: Text Search IDs-only (free) + one Place Details Enterprise
-  * competitors: one Text Search Enterprise (up to 20 places, top 3 kept)
+  * competitors: Text Search Enterprise, hard-restricted to a radius around the shop
+    (25 km, then 50, 100, and 160 km only when fewer than 3 same-trade shops come back)
 No Place Details call per competitor. `reviews` is not requested.
 """
 
@@ -10,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import re
 import urllib.error
@@ -25,6 +27,12 @@ SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 DETAILS_URL = "https://places.googleapis.com/v1/places/"
 TIMEOUT = 12
 BIAS_RADIUS_M = 25000.0
+# Tightest ring that can fill a comparison, then wider rings for rural shops.
+# Each ring is its own Text Search. Stop once COMPARISON_COUNT shops are inside.
+COMPETITOR_RADII_M = (25000.0, 50000.0, 100000.0, 160000.0)
+COMPARISON_COUNT = 3
+_EARTH_M = 6_371_000.0
+_M_PER_DEG_LAT = 111_320.0
 
 # Highest SKU on these masks is Enterprise. Checked against Place Data Fields (New)
 # on 2026-09-24 (https://developers.google.com/maps/documentation/places/web-service/data-fields):
@@ -56,12 +64,14 @@ _PLACE_FIELDS = (
     "businessStatus",
     "attributions",
 )
-# Subject only. Competitor Text Search does not need the shop's own city or pin.
+# Subject only. addressComponents stay off the competitor search.
+# places.location is Pro, below the Enterprise SKU already triggered by rating,
+# and the competitor search needs the pin so a shop outside the radius can be dropped.
 _DETAILS_ONLY_FIELDS = (
     "addressComponents",
     "location",
 )
-SEARCH_ENTERPRISE_FIELDS = tuple(f"places.{name}" for name in _PLACE_FIELDS)
+SEARCH_ENTERPRISE_FIELDS = tuple(f"places.{name}" for name in (*_PLACE_FIELDS, "location"))
 SEARCH_ENTERPRISE_MASK = ",".join(SEARCH_ENTERPRISE_FIELDS)
 DETAILS_FIELD_MASK = ",".join((*_PLACE_FIELDS, *_DETAILS_ONLY_FIELDS))
 
@@ -469,14 +479,20 @@ def search_competitors(
     *,
     api_key: str,
     location_bias: dict | None = None,
+    location_restriction: dict | None = None,
     http: HttpFn | None = None,
 ) -> list[dict[str, Any]]:
     body: dict[str, Any] = {
         "textQuery": text_query,
         "pageSize": 20,
+        "regionCode": "US",
         "includePureServiceAreaBusinesses": True,
     }
-    if location_bias:
+    # A restriction is a hard box. Bias is only a hint, and Google drops it when
+    # the text query names a city. Never send both.
+    if location_restriction:
+        body["locationRestriction"] = location_restriction
+    elif location_bias:
         body["locationBias"] = location_bias
     payload = _call(
         "POST",
@@ -514,11 +530,113 @@ def trade_term(primary_type: str, types: list[str] | None, name: str, category: 
     return "hvac"
 
 
-def competitor_query(term: str, city: str) -> str:
-    city = (city or "").strip()
-    if city:
-        return f"{term} in {city}"
-    return term
+def competitor_text(term: str) -> str:
+    """Categorical query. The city stays out of the text so it cannot override the map area.
+
+    Google Text Search ignores locationBias when textQuery names a place
+    ("plumber in Riverton"). locationRestriction is the hard boundary, and it
+    applies to categorical queries ("plumber"), not to a query that already
+    geocodes a city.
+    """
+    if (term or "").strip().lower() == "plumber":
+        return "plumber"
+    return "hvac contractor"
+
+
+def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlmb = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlmb / 2) ** 2
+    return 2 * _EARTH_M * math.asin(min(1.0, math.sqrt(a)))
+
+
+def rectangle_restriction(lat: float, lon: float, radius_m: float) -> dict[str, Any]:
+    """Bounding box for a circle. Text Search locationRestriction accepts a rectangle only."""
+    dlat = float(radius_m) / _M_PER_DEG_LAT
+    cos_lat = math.cos(math.radians(lat))
+    dlon = float(radius_m) / (_M_PER_DEG_LAT * max(0.2, abs(cos_lat)))
+    low_lat = max(-90.0, lat - dlat)
+    high_lat = min(90.0, lat + dlat)
+    low_lon = lon - dlon
+    high_lon = lon + dlon
+    if low_lon < -180.0:
+        low_lon = -180.0
+    if high_lon > 180.0:
+        high_lon = 180.0
+    return {
+        "rectangle": {
+            "low": {"latitude": low_lat, "longitude": low_lon},
+            "high": {"latitude": high_lat, "longitude": high_lon},
+        }
+    }
+
+
+def _trade_blob(place: dict) -> str:
+    return " ".join(
+        [
+            str(place.get("name") or ""),
+            str(place.get("category") or ""),
+            str(place.get("primary_type") or ""),
+            " ".join(str(item) for item in (place.get("types") or [])),
+        ]
+    ).lower().replace("_", " ")
+
+
+def same_trade(place: dict, term: str) -> bool:
+    blob = _trade_blob(place)
+    if (term or "").strip().lower() == "plumber":
+        hints = ("plumb", "drain", "sewer")
+    else:
+        hints = ("hvac", "heating", "air condition", "aircondition", "furnace", "cooling")
+    return any(hint in blob for hint in hints)
+
+
+def _state_matches(place: dict, subject_state: str) -> bool:
+    theirs = (place.get("state") or "").strip().lower()
+    want = (subject_state or "").strip().lower()
+    return bool(theirs and want and theirs == want)
+
+
+def select_local_competitors(
+    results: list[dict[str, Any]],
+    subject_id: str,
+    *,
+    anchor: tuple[float, float],
+    radius_m: float,
+    term: str,
+    subject_state: str = "",
+) -> list[dict[str, Any]]:
+    """Same-trade shops inside the radius, in the order Places returned them.
+
+    A pin outside the radius is dropped even when the API included it. A pure
+    service-area listing has no pin; keep it only when its address state matches
+    the checked shop, so a nameless national result cannot slip in.
+    """
+    kept: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for place in results:
+        if not isinstance(place, dict):
+            continue
+        pid = place.get("place_id") or ""
+        if not pid or pid == subject_id or pid in seen:
+            continue
+        if place.get("business_status") == "CLOSED_PERMANENTLY":
+            continue
+        if not same_trade(place, term):
+            continue
+        lat, lon = place.get("lat"), place.get("lon")
+        row = dict(place)
+        if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
+            dist = haversine_m(anchor[0], anchor[1], float(lat), float(lon))
+            if dist > radius_m:
+                continue
+            row["distance_m"] = dist
+        elif not _state_matches(place, subject_state):
+            continue
+        seen.add(pid)
+        kept.append(row)
+    return kept
 
 
 def pick_competitors(
@@ -539,8 +657,8 @@ def pick_competitors(
     if preferred:
         matched = [place for place in ranked if place.get("place_id") in preferred]
         if matched:
-            return matched[:3]
-    return ranked[:3]
+            return matched[:COMPARISON_COUNT]
+    return ranked[:COMPARISON_COUNT]
 
 
 def _shop_name(place: dict) -> str:

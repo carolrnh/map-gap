@@ -78,7 +78,9 @@ To turn Places on, set both:
 - `USE_GOOGLE_PLACES=true`
 - `GOOGLE_PLACES_API_KEY` (server-side only)
 
-`PLACES_DAILY_CAP` defaults to 30 Places HTTP calls per UTC day. One check is an IDs-only Text Search, one Place Details call for the business, and one Text Search for competitors (`includePureServiceAreaBusinesses`). Competitor details are not fetched one by one. Photos are shown as 0–9 or 10+. Google Posts and 90-day review velocity are not reported. Place IDs are what we store; opening the result loads Places again and counts against the cap.
+`PLACES_DAILY_CAP` defaults to 30 Places HTTP calls per UTC day. One check is an IDs-only Text Search, one Place Details call for the business, and a Text Search for competitors restricted to a radius around the shop (`includePureServiceAreaBusinesses`). The first search is 25 km. If fewer than 3 same-trade shops are inside it, the radius widens to 50 km, then 100 km, then 160 km. Each widen is another Text Search. Competitor details are not fetched one by one. Photos are shown as 0–9 or 10+. Google Posts and 90-day review velocity are not reported. Place IDs are what we store; opening the result loads Places again and counts against the cap.
+
+`PLACES_IP_LIMIT` defaults to 5 lookup-form checks per `PLACES_IP_WINDOW_SECONDS` (default 3600). Over the limit, the form returns HTTP 429 with "Too many checks from this connection. Please wait and try again." That counter is separate from the daily Places cap.
 
 ## Honesty
 
