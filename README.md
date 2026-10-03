@@ -6,7 +6,7 @@ Flow: landing → business name + city **or** Google listing URL → free check 
 
 The $195 figure is the label in `report.PRICE`. The amount Stripe charges is set on the Payment Link in Stripe, not in this repo.
 
-Copy: offer pack v1b (`/workspace/offer-gbp-v1.md`). Raven does not walk or sell. No email. No DMs. No ranking guarantee. Public data only — review counts are never invented.
+Copy: offer pack v1b (`/workspace/offer-gbp-v1.md`). Raven does not walk or sell. No spam or mailing list; at most one personal outreach email, sent by hand, and we stop on request. No ranking guarantee. Public data only — review counts are never invented.
 
 This folder is the only site. Do not use `/workspace/mappack`.
 
@@ -46,7 +46,7 @@ export STRIPE_REBUILD_PAYMENT_LINK_URL='https://buy.stripe.com/...'   # $397 tha
 ./run.sh
 ```
 
-In Stripe, set the Payment Link after-payment URL to `http://127.0.0.1:8787/thanks?report=<id>` (or your public origin). v1 delivers on that page — no email.
+In Stripe, set the Payment Link after-payment URL to `http://127.0.0.1:8787/thanks?report=<id>` (or your public origin). v1 delivers on that page — the app sends no email (Stripe sends the receipt).
 
 ## Pages
 
