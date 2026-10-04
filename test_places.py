@@ -14,6 +14,7 @@ import limits
 import lookup
 from limits import DAILY_CAP_MESSAGE, DailyCapReached, IpRateLimited
 from places import (
+    COMPETITOR_RADII_M,
     DETAILS_FIELD_MASK,
     SEARCH_ENTERPRISE_MASK,
     SEARCH_IDS_MASK,
@@ -21,13 +22,15 @@ from places import (
     clean_website,
     city_state_from_place,
     google_places_enabled,
+    haversine_m,
     normalize_place,
     photo_label_for,
     pick_competitors,
     search_text_ids,
     select_gaps,
+    select_local_competitors,
 )
-from places_lookup import persistable_record, refetch_places, run_places_lookup
+from places_lookup import geocode_us_city, persistable_record, refetch_places, run_places_lookup
 from result_link import unpack_link
 
 RODAN_URL = (
@@ -55,6 +58,7 @@ def _comp(i, reviews=400, photos=10, rating=4.8, primary="hvac_contractor", labe
         "photos": [{"name": f"places/x/photos/{i}-{n}"} for n in range(photos)],
         "pureServiceAreaBusiness": False,
         "formattedAddress": "100 Main St, Camarillo, CA 93010",
+        "location": {"latitude": 34.23, "longitude": -119.05},
         "businessStatus": "OPERATIONAL",
     }
 
@@ -73,6 +77,7 @@ def _subject():
         "photos": [{"name": "places/x/photos/only"}],
         "pureServiceAreaBusiness": True,
         "formattedAddress": SECRET_STREET,
+        "location": {"latitude": 34.2164, "longitude": -119.0376},
         "googleMapsUri": "https://maps.google.com/?cid=subject",
         "businessStatus": "OPERATIONAL",
         "websiteUri": SECRET_SITE,
@@ -170,7 +175,12 @@ class PlacesClientTests(EnvCase):
         body = json.loads(search_call["body"])
         self.assertTrue(body["includePureServiceAreaBusinesses"])
         self.assertEqual(body["pageSize"], 20)
-        self.assertEqual(body["textQuery"], "hvac in Camarillo")
+        self.assertEqual(body["textQuery"], "hvac contractor")
+        self.assertEqual(body["regionCode"], "US")
+        self.assertNotIn("locationBias", body)
+        rect = body["locationRestriction"]["rectangle"]
+        self.assertAlmostEqual((rect["low"]["latitude"] + rect["high"]["latitude"]) / 2, 34.2164, places=4)
+        self.assertAlmostEqual((rect["low"]["longitude"] + rect["high"]["longitude"]) / 2, -119.0376, places=4)
         detail_urls = [c["url"] for c in http.calls if c["method"] == "GET"]
         self.assertEqual(detail_urls, ["https://places.googleapis.com/v1/places/ChIJsubject"])
         self.assertEqual(result["subject_place_id"], "ChIJsubject")
@@ -181,6 +191,9 @@ class PlacesClientTests(EnvCase):
 
     def test_maps_url_uses_location_bias_and_does_not_scrape_preview(self):
         http = FakeHTTP()
+        # No Place location on this subject, so the competitor search keeps the URL pin.
+        # The city still comes from formattedAddress, without the street.
+        http.subject.pop("location", None)
         with patch("lookup._google_enrich", side_effect=AssertionError("preview scrape")):
             run_places_lookup("", "", RODAN_URL, http=http)
         ids_body = json.loads(http.calls[0]["body"])
@@ -188,12 +201,13 @@ class PlacesClientTests(EnvCase):
         self.assertEqual(ids_body["locationBias"]["circle"]["center"]["latitude"], 34.2087835)
         self.assertTrue(ids_body["includePureServiceAreaBusinesses"])
         self.assertTrue(all("preview" not in c["url"] for c in http.calls))
-        # No Place location on this subject, so the competitor search keeps the URL pin.
-        # The city still comes from formattedAddress, without the street.
         search_body = json.loads(http.calls[2]["body"])
-        self.assertEqual(search_body["textQuery"], "hvac in Ventura CA")
+        self.assertEqual(search_body["textQuery"], "hvac contractor")
+        self.assertNotIn("Ventura", search_body["textQuery"])
         self.assertNotIn("999 Secret", search_body["textQuery"])
-        self.assertEqual(search_body["locationBias"]["circle"]["center"]["latitude"], 34.2087835)
+        self.assertNotIn("locationBias", search_body)
+        rect = search_body["locationRestriction"]["rectangle"]
+        self.assertAlmostEqual((rect["low"]["latitude"] + rect["high"]["latitude"]) / 2, 34.2087835, places=4)
 
     def test_maps_url_without_city_uses_place_city_and_coordinates(self):
         http = FakeHTTP()
@@ -212,9 +226,11 @@ class PlacesClientTests(EnvCase):
         ids_body = json.loads(http.calls[0]["body"])
         search_body = json.loads(http.calls[2]["body"])
         self.assertEqual(ids_body["locationBias"]["circle"]["center"]["latitude"], 34.2087835)
-        self.assertEqual(search_body["textQuery"], "hvac in Camarillo CA")
-        self.assertEqual(search_body["locationBias"]["circle"]["center"]["latitude"], 34.2164)
-        self.assertEqual(search_body["locationBias"]["circle"]["center"]["longitude"], -119.0376)
+        self.assertEqual(search_body["textQuery"], "hvac contractor")
+        self.assertNotIn("locationBias", search_body)
+        rect = search_body["locationRestriction"]["rectangle"]
+        self.assertAlmostEqual((rect["low"]["latitude"] + rect["high"]["latitude"]) / 2, 34.2164, places=4)
+        self.assertAlmostEqual((rect["low"]["longitude"] + rect["high"]["longitude"]) / 2, -119.0376, places=4)
         self.assertEqual(result["listing"]["category"], "HVAC contractor")
         self.assertFalse(result["listing"]["address"])
         self.assertEqual(result["listing"]["city"], "Camarillo CA")
@@ -226,7 +242,7 @@ class PlacesClientTests(EnvCase):
         self.assertIn("googleMapsTypeLabel", details_mask)
         self.assertIn("primaryTypeDisplayName", details_mask)
         self.assertNotIn("addressComponents", search_mask)
-        self.assertNotIn("location", search_mask)
+        self.assertIn("places.location", search_mask)
 
     def test_new_fields_stay_inside_the_enterprise_sku(self):
         # Place Data Fields (New), checked 2026-09-24. These raise the call to
@@ -533,6 +549,230 @@ class GapTests(unittest.TestCase):
         ]
         chosen = pick_competitors(rows, "self", ["b"])
         self.assertEqual([c["place_id"] for c in chosen], ["b"])
+
+
+RIVERTON = (40.5219, -111.9391)
+
+
+def _north_of(lat: float, lon: float, meters: float) -> tuple[float, float]:
+    return lat + meters / 111_320.0, lon
+
+
+def _shop(pid: str, name: str, lat: float, lon: float, *, state: str = "UT", city: str = "Riverton"):
+    return {
+        "id": pid,
+        "displayName": {"text": name},
+        "primaryType": "plumber",
+        "primaryTypeDisplayName": {"text": "Plumber"},
+        "types": ["plumber"],
+        "nationalPhoneNumber": "(801) 555-0100",
+        "websiteUri": "https://shop.example",
+        "rating": 4.9,
+        "userRatingCount": 400,
+        "regularOpeningHours": {"weekdayDescriptions": ["Monday: 8:00 AM – 5:00 PM"]},
+        "photos": [{"name": "places/x/photos/a"}, {"name": "places/x/photos/b"}],
+        "formattedAddress": f"1 Main St, {city}, {state} 84000, USA",
+        "location": {"latitude": lat, "longitude": lon},
+        "businessStatus": "OPERATIONAL",
+    }
+
+
+def _riverton_subject():
+    subject = _subject()
+    subject["displayName"] = {"text": "Andrus Plumbing"}
+    subject["primaryType"] = "plumber"
+    subject["primaryTypeDisplayName"] = {"text": "Plumber"}
+    subject["types"] = ["plumber"]
+    subject["pureServiceAreaBusiness"] = True
+    subject["formattedAddress"] = "Riverton, UT 84065, USA"
+    subject["location"] = {"latitude": RIVERTON[0], "longitude": RIVERTON[1]}
+    subject["addressComponents"] = [
+        {"longText": "Riverton", "shortText": "Riverton", "types": ["locality", "political"]},
+        {"longText": "Utah", "shortText": "UT", "types": ["administrative_area_level_1", "political"]},
+    ]
+    return subject
+
+
+class LocalCompetitorTests(EnvCase):
+    def test_distant_shops_are_not_comparisons_even_when_places_returns_them(self):
+        """Tulsa, Baltimore, and a far same-state shop must not beat shops near the pin."""
+        tulsa = _shop("tulsa", "Tulsa Plumbing Co", 36.1540, -95.9928, state="OK", city="Tulsa")
+        baltimore = _shop("baltimore", "Baltimore Plumbing Co", 39.2904, -76.6122, state="MD", city="Baltimore")
+        st_george = _shop("stgeorge", "St George Plumbing", 37.0965, -113.5684, state="UT", city="St George")
+        near = []
+        for i, meters in enumerate((3000, 8000, 12000), start=1):
+            lat, lon = _north_of(*RIVERTON, meters)
+            near.append(_shop(f"local{i}", f"Local Plumbing {i}", lat, lon))
+        # Far shops first, so a "first 3" pick without a distance check fails this test.
+        http = FakeHTTP(subject=_riverton_subject(), competitors=[tulsa, baltimore, st_george, *near])
+        result = run_places_lookup("Andrus Plumbing", "Riverton, UT", "", http=http)
+        self.assertEqual(result["competitor_place_ids"], ["local1", "local2", "local3"])
+        self.assertEqual(result["listing"]["city"], "Riverton, UT")
+        for row in result["nearby"]:
+            self.assertLess(row["distance_m"], 25000)
+            self.assertEqual(row["state"], "UT")
+        search_calls = [c for c in http.calls if c["method"] == "POST" and "searchText" in c["url"]]
+        # One id search plus one competitor search. The 25 km ring already has 3 shops.
+        self.assertEqual(len(search_calls), 2)
+        body = json.loads(search_calls[-1]["body"])
+        self.assertEqual(body["textQuery"], "plumber")
+        self.assertNotIn("Riverton", body["textQuery"])
+        self.assertNotIn("locationBias", body)
+        rect = body["locationRestriction"]["rectangle"]
+        self.assertAlmostEqual((rect["low"]["latitude"] + rect["high"]["latitude"]) / 2, RIVERTON[0], places=3)
+        self.assertGreater(haversine_m(*RIVERTON, 36.1540, -95.9928), 500_000)
+        self.assertGreater(haversine_m(*RIVERTON, 37.0965, -113.5684), 200_000)
+
+    def test_rural_search_widens_and_still_drops_distant_shops(self):
+        tulsa = _shop("tulsa", "Tulsa Plumbing Co", 36.1540, -95.9928, state="OK", city="Tulsa")
+        far_locals = []
+        for i, meters in enumerate((40000, 42000, 45000), start=1):
+            lat, lon = _north_of(*RIVERTON, meters)
+            far_locals.append(_shop(f"wide{i}", f"County Plumbing {i}", lat, lon, city="Herriman"))
+
+        class ByRadius(FakeHTTP):
+            def __call__(self, method, url, headers, body):
+                self.calls.append({"method": method, "url": url, "headers": dict(headers), "body": body})
+                if "searchText" in url:
+                    mask = headers.get("X-Goog-FieldMask")
+                    if mask == SEARCH_IDS_MASK:
+                        return {"places": [{"id": self.subject_id}]}
+                    payload = json.loads(body)
+                    rect = payload["locationRestriction"]["rectangle"]
+                    radius = (rect["high"]["latitude"] - rect["low"]["latitude"]) / 2 * 111_320.0
+                    if radius < 30_000:
+                        return {"places": [tulsa]}
+                    return {"places": [*far_locals, tulsa]}
+                if method == "GET" and self.subject_id in url:
+                    return self.subject
+                raise AssertionError(f"unexpected places call {method} {url}")
+
+        http = ByRadius(subject=_riverton_subject(), competitors=[])
+        result = run_places_lookup("Pinon Plumbing", "Westcliffe, CO", "", http=http)
+        self.assertEqual(result["competitor_place_ids"], ["wide1", "wide2", "wide3"])
+        self.assertNotIn("tulsa", result["competitor_place_ids"])
+        for row in result["nearby"]:
+            self.assertGreater(row["distance_m"], 25_000)
+            self.assertLess(row["distance_m"], 50_000)
+        radii = []
+        for call in http.calls:
+            if call["method"] != "POST" or "searchText" not in call["url"]:
+                continue
+            if call["headers"].get("X-Goog-FieldMask") == SEARCH_IDS_MASK:
+                continue
+            rect = json.loads(call["body"])["locationRestriction"]["rectangle"]
+            radii.append((rect["high"]["latitude"] - rect["low"]["latitude"]) / 2 * 111_320.0)
+        self.assertEqual(len(radii), 2)
+        self.assertAlmostEqual(radii[0], COMPETITOR_RADII_M[0], delta=500)
+        self.assertAlmostEqual(radii[1], COMPETITOR_RADII_M[1], delta=500)
+
+    def test_wider_ring_keeps_shops_already_found_nearby(self):
+        close = []
+        for i, meters in enumerate((2000, 6000), start=1):
+            lat, lon = _north_of(*RIVERTON, meters)
+            close.append(_shop(f"close{i}", f"Close Plumbing {i}", lat, lon))
+        wide = []
+        for i, meters in enumerate((40000, 42000, 44000), start=1):
+            lat, lon = _north_of(*RIVERTON, meters)
+            wide.append(_shop(f"wide{i}", f"Farther Plumbing {i}", lat, lon, city="Herriman"))
+
+        class ByRadius(FakeHTTP):
+            def __call__(self, method, url, headers, body):
+                self.calls.append({"method": method, "url": url, "headers": dict(headers), "body": body})
+                if "searchText" in url:
+                    if headers.get("X-Goog-FieldMask") == SEARCH_IDS_MASK:
+                        return {"places": [{"id": self.subject_id}]}
+                    rect = json.loads(body)["locationRestriction"]["rectangle"]
+                    radius = (rect["high"]["latitude"] - rect["low"]["latitude"]) / 2 * 111_320.0
+                    if radius < 30_000:
+                        return {"places": close}
+                    return {"places": wide}
+                if method == "GET" and self.subject_id in url:
+                    return self.subject
+                raise AssertionError(f"unexpected places call {method} {url}")
+
+        http = ByRadius(subject=_riverton_subject(), competitors=[])
+        result = run_places_lookup("Andrus Plumbing", "Riverton, UT", "", http=http)
+        self.assertEqual(result["competitor_place_ids"], ["close1", "close2", "wide1"])
+
+    def test_stored_distant_ids_are_not_kept_on_refetch(self):
+        tulsa = _shop("tulsa", "Tulsa Plumbing Co", 36.1540, -95.9928, state="OK", city="Tulsa")
+        local = _shop("local1", "Local Plumbing", *_north_of(*RIVERTON, 4000))
+        http = FakeHTTP(subject=_riverton_subject(), competitors=[tulsa, local])
+        result = refetch_places(
+            {
+                "user_input": {"name": "Andrus Plumbing", "city": "Riverton, UT", "listing_url": ""},
+                "subject_place_id": "ChIJsubject",
+                "competitor_place_ids": ["tulsa"],
+            },
+            http=http,
+        )
+        self.assertEqual(result["competitor_place_ids"], ["local1"])
+
+    def test_no_anchor_does_not_fall_back_to_a_national_search(self):
+        http = FakeHTTP()
+        http.subject.pop("location", None)
+        with patch("places_lookup.geocode_us_city", return_value=None):
+            result = run_places_lookup("Andrus Plumbing", "", "", http=http)
+        self.assertEqual(result["outcome"], "no_competitors")
+        self.assertEqual(result["competitor_place_ids"], [])
+        self.assertEqual(len(http.calls), 2)
+
+    def test_service_area_without_a_pin_uses_the_city_centroid(self):
+        http = FakeHTTP(subject=_riverton_subject(), competitors=[])
+        http.subject.pop("location", None)
+        lat, lon = _north_of(*RIVERTON, 5000)
+        http.competitors = [
+            _shop("tulsa", "Tulsa Plumbing Co", 36.1540, -95.9928, state="OK", city="Tulsa"),
+            _shop("local1", "Local Plumbing", lat, lon),
+        ]
+        with patch("places_lookup.geocode_us_city", return_value=RIVERTON) as geo:
+            result = run_places_lookup("Andrus Plumbing", "Riverton, UT", "", http=http)
+        geo.assert_called_once_with("Riverton, UT")
+        self.assertEqual(result["competitor_place_ids"], ["local1"])
+        self.assertLess(result["nearby"][0]["distance_m"], 25_000)
+
+    def test_select_local_rejects_far_same_state_and_keeps_a_local_service_area_shop(self):
+        anchor = RIVERTON
+        far = normalize_place(_shop("stgeorge", "St George Plumbing", 37.0965, -113.5684, state="UT", city="St George"))
+        sab_here = normalize_place(
+            {
+                "id": "sab-local",
+                "displayName": {"text": "Valley Plumbing"},
+                "primaryType": "plumber",
+                "types": ["plumber"],
+                "formattedAddress": "Riverton, UT, USA",
+                "businessStatus": "OPERATIONAL",
+            }
+        )
+        sab_away = normalize_place(
+            {
+                "id": "sab-tulsa",
+                "displayName": {"text": "Tulsa Plumbing Co"},
+                "primaryType": "plumber",
+                "types": ["plumber"],
+                "formattedAddress": "Tulsa, OK, USA",
+                "businessStatus": "OPERATIONAL",
+            }
+        )
+        kept = select_local_competitors(
+            [far, sab_away, sab_here],
+            "subject",
+            anchor=anchor,
+            radius_m=25_000,
+            term="plumber",
+            subject_state="UT",
+        )
+        self.assertEqual([row["place_id"] for row in kept], ["sab-local"])
+        self.assertGreater(haversine_m(*anchor, far["lat"], far["lon"]), 25_000)
+
+    def test_geocode_asks_nominatim_for_a_us_city(self):
+        with patch("lookup._nominatim", return_value=[{"lat": "40.52", "lon": "-111.94"}]) as nom:
+            point = geocode_us_city("Riverton, UT")
+        self.assertEqual(point, (40.52, -111.94))
+        query = nom.call_args[0][0]["q"]
+        self.assertIn("Riverton", query)
+        self.assertIn("USA", query)
 
 
 class LimitTests(EnvCase):
