@@ -295,3 +295,54 @@ code { font-family: var(--mono); font-size: 13px; }
 @media (max-width: 640px) {
   .retry-form .btn { display: block; width: 100%; text-align: center; }
 }
+
+.sample { margin: 8px 0 0; }
+.sample-label {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: var(--ink);
+}
+.sample .lede { margin: 0 0 12px; }
+.sample .bullets { margin-bottom: 8px; }
+.offers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0 0;
+}
+@media (max-width: 720px) {
+  .offers { grid-template-columns: 1fr; }
+}
+.offer h3 {
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 750;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+.offer p { margin: 0 0 14px; }
+.offer-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 2px solid var(--map);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--map);
+  font-weight: 700;
+  text-decoration: none;
+}
+.offer-link:hover,
+.offer-link:focus {
+  background: transparent;
+  color: var(--map);
+  border-color: var(--ink);
+}

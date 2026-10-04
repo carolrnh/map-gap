@@ -23,6 +23,26 @@
 
 <p>If Google <em>suspended</em> the listing, this check will not get it back. That’s an appeal to Google. <a class="tap-link desk-inline" href="{{ url_for('page_suspended') }}">Suspension is Google’s appeal</a>.</p>
 
+<section class="sample" aria-labelledby="sample-label">
+  <p id="sample-label" class="sample-label">Sample</p>
+  <p class="lede">Example Heating &amp; Air</p>
+  <ol class="bullets">
+    <li>
+      <h2>Reviews</h2>
+      <p>Sample Comfort Co shows 186 Google reviews. This listing shows 41. This gap uses the total review count Google Places returns.</p>
+    </li>
+    <li>
+      <h2>Photos</h2>
+      <p>Google Places returns at most 10 photos, so counts are 0–9 or 10+. This listing has 2. Sample Comfort Co has 10+.</p>
+    </li>
+    <li>
+      <h2>Category</h2>
+      <p>This listing's category is General contractor. The shops this search returned are mostly HVAC contractor. This comparison uses the Google Maps category when Places returns it, otherwise the primary type display name.</p>
+    </li>
+  </ol>
+  <p class="hint">Fictional shop. A free check reads like this.</p>
+</section>
+
 <h2>How it works</h2>
 <ol class="steps">
   <li>Paste the listing.</li>
@@ -30,23 +50,22 @@
   <li>Get the competitor report ($195): you vs the 3 shops Google shows first, and what to fix this week.</li>
 </ol>
 
-<section class="card pricing" id="pricing">
+<section class="pricing" id="pricing">
   <h2>Pricing</h2>
-  <dl class="price-list">
-    <div>
-      <dt>Free check</dt>
-      <dd>Three things the shops above you have that you don’t, read from the public listing.</dd>
-    </div>
-    <div>
-      <dt>Competitor report — ${{ price }}</dt>
-      <dd>A one-page teardown of you vs the 3 shops Google shows first: categories they have that you don’t, how fast they get reviews vs you, whether anyone is posting, and which services you left blank. Then a this-week vs later list. You apply the changes.</dd>
-    </div>
-    {# TODO: Carol will add a sample report here (fake shop, real format). Do not invent one. #}
-    <div>
-      <dt>Listing rebuild — $397</dt>
-      <dd>After the competitor report: a category list to add yourself, services copy (2–3 sentences each), 8 weeks of Google posts (first 4 weeks written), and review-reply templates. Still your login.</dd>
-    </div>
-  </dl>
+  <p><strong>Free check.</strong> Three things the shops above you have that you don’t, read from the public listing.</p>
+  <div class="offers">
+    <article class="card offer">
+      <h3>Competitor report — ${{ price }}</h3>
+      <p>A one-page teardown of you vs the 3 shops Google shows first: categories they have that you don’t, how fast they get reviews vs you, whether anyone is posting, and which services you left blank. Then a this-week vs later list. You apply the changes.</p>
+      {# TODO: Carol will add a sample report here (fake shop, real format). Do not invent one. #}
+      <a class="offer-link" href="#lookup">Free check first</a>
+    </article>
+    <article class="card offer">
+      <h3>Listing rebuild — $397</h3>
+      <p>After the competitor report: a category list to add yourself, services copy (2–3 sentences each), 8 weeks of Google posts (first 4 weeks written), and review-reply templates. Still your login.</p>
+      <a class="offer-link" href="#lookup">Free check first</a>
+    </article>
+  </div>
   <p>If the report doesn’t find anything useful, reply to your receipt email for a full refund.</p>
 </section>
 
