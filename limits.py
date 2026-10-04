@@ -33,13 +33,13 @@ class IpRateLimited(Exception):
 def places_daily_cap() -> int:
     raw = (os.environ.get("PLACES_DAILY_CAP") or "").strip()
     if not raw:
-        return 30
+        return 150
     try:
         n = int(raw)
     except ValueError:
-        return 30
+        return 150
     if n < 0:
-        return 30
+        return 150
     return n
 
 

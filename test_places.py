@@ -556,7 +556,7 @@ class LimitTests(EnvCase):
         self.assertEqual(limits.calls_on("2026-09-29"), 2)
         self.assertEqual(limits.reserve_places_call(today="2026-09-30"), 1)
         os.environ.pop("PLACES_DAILY_CAP", None)
-        self.assertEqual(limits.places_daily_cap(), 30)
+        self.assertEqual(limits.places_daily_cap(), 150)
 
     def test_form_rate_limit_and_flag_off_unchanged(self):
         os.environ["USE_GOOGLE_PLACES"] = "true"
