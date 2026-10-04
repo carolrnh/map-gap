@@ -327,15 +327,38 @@ def _bias_center(bias: dict | None) -> tuple[float, float] | None:
     return None
 
 
-def _anchor(subject: dict, bias: dict | None, city_label: str) -> tuple[float, float] | None:
-    """Shop pin, then the Maps URL pin, then the city centroid. Never a national search."""
+def _place_pin(subject: dict) -> tuple[float, float] | None:
     lat, lon = subject.get("lat"), subject.get("lon")
     if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
         return float(lat), float(lon)
-    pinned = _bias_center(bias)
-    if pinned:
-        return pinned
-    return geocode_us_city(city_label)
+    return None
+
+
+def _anchor(subject: dict, bias: dict | None, city_label: str) -> tuple[float, float] | None:
+    """Where competitor search is centered.
+
+    A storefront pin is the shop. A service-area listing often has no street,
+    and the Google pin can sit far from the city on the listing (Andrus Plumbing's
+    pin is in Provo Canyon, about 37 km from Riverton). For those, center on the
+    stated city: the visitor's city when they typed one, otherwise the city from
+    the listing. The pin is only the fallback when that city does not geocode.
+    """
+    pin = _place_pin(subject)
+    url_pin = _bias_center(bias)
+    label = (city_label or "").strip()
+    # Geocode only when the pin is not the shop: a service-area listing, or a
+    # storefront that has no pin at all. A storefront with a pin stays on that pin.
+    if subject.get("pure_service_area") and label:
+        city = geocode_us_city(label)
+        if city:
+            return city
+    if pin:
+        return pin
+    if url_pin:
+        return url_pin
+    if label:
+        return geocode_us_city(label)
+    return None
 
 
 def _gather_competitors(
@@ -419,9 +442,9 @@ def _from_subject_id(
         subject.get("name") or "",
         subject.get("category") or "",
     )
-    # The shop pin wins over a Maps URL center. A city in the text query is not
-    # a location: Google ignores locationBias when the query names a city, and
-    # pick used to keep the first 3 hits with no distance check.
+    # Storefronts use the shop pin. Service-area listings use the stated city,
+    # because that pin is not a storefront. Results are then the nearest shops
+    # inside the hard radius, not the first names Google returned.
     anchor = _anchor(subject, bias, city_label)
     if anchor is None:
         logger.info("places competitors skipped: no anchor")

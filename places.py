@@ -639,12 +639,26 @@ def select_local_competitors(
     return kept
 
 
+def _distance_key(place: dict, preferred: set[str]) -> tuple:
+    """Nearest pin first. A stored id breaks a tie. A shop with no pin sorts last."""
+    dist = place.get("distance_m")
+    prefer = 0 if (place.get("place_id") or "") in preferred else 1
+    if isinstance(dist, (int, float)):
+        return (0, float(dist), prefer)
+    return (1, prefer, place.get("place_id") or "")
+
+
 def pick_competitors(
     results: list[dict[str, Any]],
     subject_id: str,
     preferred_ids: list[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Top 3 from one Text Search. Prefer stored place IDs when they are still in the results."""
+    """Up to 3 same-trade shops already inside the ring, nearest first.
+
+    Google's result order is relevance, so a Salt Lake shop 20 km away can be
+    listed ahead of a Riverton shop 5 km away. Distance wins. A stored place id
+    only breaks a tie; it does not keep a farther shop.
+    """
     ranked = []
     for place in results:
         pid = place.get("place_id") or ""
@@ -654,10 +668,7 @@ def pick_competitors(
             continue
         ranked.append(place)
     preferred = set(preferred_ids or [])
-    if preferred:
-        matched = [place for place in ranked if place.get("place_id") in preferred]
-        if matched:
-            return matched[:COMPARISON_COUNT]
+    ranked.sort(key=lambda place: _distance_key(place, preferred))
     return ranked[:COMPARISON_COUNT]
 
 
