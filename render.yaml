@@ -19,4 +19,4 @@ services:
       - key: USE_GOOGLE_PLACES
         value: "false"
       - key: PLACES_DAILY_CAP
-        value: "30"
+        value: "150"
