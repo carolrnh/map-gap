@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import tempfile
 import unittest
@@ -127,8 +128,13 @@ class EnvCase(unittest.TestCase):
         os.environ["GOOGLE_PLACES_API_KEY"] = "test-key-not-real"
         limits.reset_ip_limits()
         appmod.clear_places_cache()
+        # Service-area checks geocode the stated city. Tests that do not patch
+        # this get no centroid, so a pin or Maps URL stays the anchor.
+        self._geo = patch("places_lookup.geocode_us_city", return_value=None)
+        self._geo.start()
 
     def tearDown(self):
+        self._geo.stop()
         for key, value in self._env.items():
             if value is None:
                 os.environ.pop(key, None)
@@ -315,7 +321,8 @@ class PlacesClientTests(EnvCase):
         }
         result = refetch_places(stored, http=http)
         self.assertEqual([c["method"] for c in http.calls], ["GET", "POST"])
-        self.assertEqual(result["competitor_place_ids"], ["ChIJcomp2"])
+        # Same distance, so the stored id only sorts first. It does not drop the others.
+        self.assertEqual(result["competitor_place_ids"], ["ChIJcomp2", "ChIJcomp1", "ChIJcomp3"])
         self.assertEqual(limits.calls_on(), 2)
 
     def test_flag_off_or_missing_key(self):
@@ -544,18 +551,24 @@ class GapTests(unittest.TestCase):
         rows = [
             {"place_id": "self", "business_status": "OPERATIONAL"},
             {"place_id": "closed", "business_status": "CLOSED_PERMANENTLY"},
-            {"place_id": "a", "business_status": "OPERATIONAL"},
-            {"place_id": "b", "business_status": "OPERATIONAL"},
+            {"place_id": "far", "business_status": "OPERATIONAL", "distance_m": 20000},
+            {"place_id": "near", "business_status": "OPERATIONAL", "distance_m": 4000},
         ]
-        chosen = pick_competitors(rows, "self", ["b"])
-        self.assertEqual([c["place_id"] for c in chosen], ["b"])
+        chosen = pick_competitors(rows, "self", ["far"])
+        self.assertEqual([c["place_id"] for c in chosen], ["near", "far"])
 
 
 RIVERTON = (40.5219, -111.9391)
 
 
 def _north_of(lat: float, lon: float, meters: float) -> tuple[float, float]:
-    return lat + meters / 111_320.0, lon
+    return _move(lat, lon, meters, 0)
+
+
+def _move(lat: float, lon: float, north_m: float, east_m: float) -> tuple[float, float]:
+    dlat = north_m / 111_320.0
+    dlon = east_m / (111_320.0 * math.cos(math.radians(lat)))
+    return lat + dlat, lon + dlon
 
 
 def _shop(pid: str, name: str, lat: float, lon: float, *, state: str = "UT", city: str = "Riverton"):
@@ -765,6 +778,96 @@ class LocalCompetitorTests(EnvCase):
         )
         self.assertEqual([row["place_id"] for row in kept], ["sab-local"])
         self.assertGreater(haversine_m(*anchor, far["lat"], far["lon"]), 25_000)
+
+    def test_service_area_pin_far_from_the_city_uses_the_city_and_the_nearest_shops(self):
+        """Andrus Plumbing: service-area, no street, Google pin ~37 km SE of Riverton.
+
+        Shops Google lists first are farther Salt Lake shops and one next to that
+        pin. The comparison must be the shops nearest the stated city.
+        """
+        diag = 37000 / math.sqrt(2)
+        pin = _move(*RIVERTON, -diag, diag)
+        canyon_lat, canyon_lon = _move(*pin, diag * (4000 / 37000), -diag * (4000 / 37000))
+        self.assertGreater(haversine_m(*RIVERTON, *pin), 35000)
+        self.assertLess(haversine_m(*pin, canyon_lat, canyon_lon), 5000)
+        self.assertGreater(haversine_m(*RIVERTON, canyon_lat, canyon_lon), 25000)
+
+        subject = _riverton_subject()
+        subject["location"] = {"latitude": pin[0], "longitude": pin[1]}
+        subject["formattedAddress"] = "Riverton, UT, USA"
+        shops = []
+        for meters in (22000, 20000, 18000):
+            lat, lon = _north_of(*RIVERTON, meters)
+            shops.append(_shop(f"slc{meters}", f"Salt Lake Plumbing {meters}", lat, lon, city="Salt Lake City"))
+        shops.append(_shop("canyon", "Canyon Plumbing", canyon_lat, canyon_lon, city="Provo"))
+        for meters in (8000, 6000, 4000):
+            lat, lon = _north_of(*RIVERTON, meters)
+            shops.append(_shop(f"near{meters}", f"Riverton Plumbing {meters}", lat, lon))
+
+        class Fixed(FakeHTTP):
+            def __call__(self, method, url, headers, body):
+                self.calls.append({"method": method, "url": url, "headers": dict(headers), "body": body})
+                if "searchText" in url:
+                    if headers.get("X-Goog-FieldMask") == SEARCH_IDS_MASK:
+                        return {"places": [{"id": self.subject_id}]}
+                    return {"places": shops}
+                if method == "GET" and self.subject_id in url:
+                    return self.subject
+                raise AssertionError(f"unexpected places call {method} {url}")
+
+        http = Fixed(subject=subject, competitors=[])
+        with patch("places_lookup.geocode_us_city", return_value=RIVERTON) as geo:
+            result = run_places_lookup("Andrus Plumbing", "Riverton, UT", "", http=http)
+        geo.assert_called_with("Riverton, UT")
+        self.assertEqual(result["competitor_place_ids"], ["near4000", "near6000", "near8000"])
+        distances = [row["distance_m"] for row in result["nearby"]]
+        self.assertEqual(distances, sorted(distances))
+        self.assertLess(distances[-1], 10000)
+        self.assertNotIn("canyon", result["competitor_place_ids"])
+        self.assertTrue(result["listing"]["service_area"])
+        self.assertFalse(result["listing"]["address"])
+        search_calls = [
+            c for c in http.calls
+            if c["method"] == "POST" and "searchText" in c["url"] and c["headers"].get("X-Goog-FieldMask") != SEARCH_IDS_MASK
+        ]
+        self.assertEqual(len(search_calls), 1)
+        rect = json.loads(search_calls[0]["body"])["locationRestriction"]["rectangle"]
+        mid_lat = (rect["low"]["latitude"] + rect["high"]["latitude"]) / 2
+        mid_lon = (rect["low"]["longitude"] + rect["high"]["longitude"]) / 2
+        self.assertAlmostEqual(mid_lat, RIVERTON[0], places=3)
+        self.assertAlmostEqual(mid_lon, RIVERTON[1], places=3)
+        self.assertGreater(haversine_m(mid_lat, mid_lon, *pin), 35000)
+
+        again = Fixed(subject=subject, competitors=[])
+        with patch("places_lookup.geocode_us_city", return_value=RIVERTON):
+            refetched = refetch_places(
+                {
+                    "user_input": {"name": "Andrus Plumbing", "city": "Riverton, UT", "listing_url": ""},
+                    "subject_place_id": "ChIJsubject",
+                    "competitor_place_ids": ["slc22000", "slc20000", "slc18000"],
+                },
+                http=again,
+            )
+        self.assertEqual(refetched["competitor_place_ids"], ["near4000", "near6000", "near8000"])
+
+    def test_storefront_keeps_its_pin_when_the_typed_city_is_elsewhere(self):
+        pin = _move(*RIVERTON, -37000 / math.sqrt(2), 37000 / math.sqrt(2))
+        subject = _riverton_subject()
+        subject["pureServiceAreaBusiness"] = False
+        subject["formattedAddress"] = "1 Main St, Provo, UT 84604, USA"
+        subject["location"] = {"latitude": pin[0], "longitude": pin[1]}
+        http = FakeHTTP(subject=subject, competitors=[])
+        with patch("places_lookup.geocode_us_city", side_effect=AssertionError("storefront geocode")):
+            run_places_lookup("Storefront Plumbing", "Riverton, UT", "", http=http)
+        search_calls = [
+            c for c in http.calls
+            if c["method"] == "POST" and "searchText" in c["url"] and c["headers"].get("X-Goog-FieldMask") != SEARCH_IDS_MASK
+        ]
+        rect = json.loads(search_calls[0]["body"])["locationRestriction"]["rectangle"]
+        mid_lat = (rect["low"]["latitude"] + rect["high"]["latitude"]) / 2
+        mid_lon = (rect["low"]["longitude"] + rect["high"]["longitude"]) / 2
+        self.assertAlmostEqual(mid_lat, pin[0], places=3)
+        self.assertAlmostEqual(mid_lon, pin[1], places=3)
 
     def test_geocode_asks_nominatim_for_a_us_city(self):
         with patch("lookup._nominatim", return_value=[{"lat": "40.52", "lon": "-111.94"}]) as nom:
