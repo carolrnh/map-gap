@@ -113,7 +113,7 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertIn(">Sample<", html)
         self.assertIn("Example Heating &amp; Air", html)
         self.assertIn("Fictional shop. A free check reads like this.", html)
-        self.assertLess(html.find("Suspension is Google’s appeal"), html.find(">Sample<"))
+        self.assertLess(html.find("an appeal you file with Google"), html.find(">Sample<"))
         self.assertLess(html.find(">Sample<"), html.find('id="pricing"'))
         self.assertEqual(html.count('class="card offer"'), 2)
         self.assertEqual(html.count('class="btn"'), 1)
