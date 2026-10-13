@@ -139,7 +139,7 @@ class DurableLinkTests(unittest.TestCase):
         self.assertIn("Competitor report — $195", html)
         self.assertNotIn("Full check", html)
         self.assertIn(
-            "If the report doesn’t find anything useful, reply to your receipt email for a full refund.",
+            "If the report doesn’t show at least 3 specific fixes for your listing, I’ll refund you.",
             html,
         )
         self.assertNotIn("chat support", html.lower())
