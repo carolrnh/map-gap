@@ -187,7 +187,7 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertNotIn("on the machine that runs this app", html)
         self.assertIn("The link for your check contains the public result", html)
         self.assertIn(
-            "If the report doesn’t show at least 3 specific fixes for your listing, I’ll refund you.",
+            "If the report doesn’t show at least 3 specific fixes for your listing, reply to your receipt email and we’ll refund you.",
             html,
         )
 
