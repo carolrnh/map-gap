@@ -242,7 +242,7 @@ def build_reports(lookup: dict) -> dict:
             {
                 "id": "rebuild",
                 "title": "Listing rebuild is a separate $397 one-time job (thank-you page only)",
-                "detail": "Separate from the $195 competitor report: category list, services copy, 8-week post calendar, review-reply templates. We can make the fixes if you add us as a manager, or you can. Offered after this report is paid. Not a monthly plan.",
+                "detail": "Separate from the $195 competitor report: category list, services copy, 8-week post calendar, review-reply templates. We can make the fixes for you, or you can. We submit each change as a suggested edit on your Google listing, and you approve it in your Google Business Profile. No access or password needed, and you stay the owner. Offered after this report is paid. Not a monthly plan.",
             },
         ],
         "legal": (
