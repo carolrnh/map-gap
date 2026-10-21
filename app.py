@@ -216,8 +216,8 @@ WHAT_IS_FAQS = [
         "q": "Do you take over the listing?",
         "a": (
             "You keep the listing. We do not take ownership. You stay the owner. "
-            "We can make the fixes if you add us as a manager (free, about a minute). "
-            "You can remove us anytime. Prefer to do it yourself? The report shows exactly what to change."
+            "We submit the fixes as suggested edits on your Google listing, and you approve them in your Google Business Profile. "
+            "No access or password needed. Prefer to do it yourself? The report shows exactly what to change."
         ),
     },
     {
