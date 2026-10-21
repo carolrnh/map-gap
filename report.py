@@ -242,12 +242,12 @@ def build_reports(lookup: dict) -> dict:
             {
                 "id": "rebuild",
                 "title": "Listing rebuild is a separate $397 one-time job (thank-you page only)",
-                "detail": "Separate from the $195 competitor report: category list to add yourself, services copy, 8-week post calendar, review-reply templates. Offered after this report is paid. Not a monthly plan.",
+                "detail": "Separate from the $195 competitor report: category list, services copy, 8-week post calendar, review-reply templates. We can make the fixes if you add us as a manager, or you can. Offered after this report is paid. Not a monthly plan.",
             },
         ],
         "legal": (
-            "This is research and copy for you to apply on your own Google Business Profile. "
-            "You keep ownership. No ranking is guaranteed. We do not write fake reviews or change your legal business name."
+            "This is research and copy. We can make the fixes for you, or the report shows exactly what to change. "
+            "You keep ownership. We never take ownership. No ranking is guaranteed. We do not write fake reviews or change your legal business name."
         ),
         "operator_note": (
             "Google’s listing panel (secondary categories, review dates, posts, photos) is usually "
