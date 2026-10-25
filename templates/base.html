@@ -11,14 +11,19 @@
   <meta property="og:type" content="website">
   <link rel="canonical" href="{{ request.base_url }}">
   <meta property="og:url" content="{{ request.base_url }}">
-  <meta property="og:image" content="{{ url_for('static', filename='og.png', _external=True) }}">
+  <meta property="og:image" content="{{ url_for('static', filename='brand/og-image-1200x630.png', _external=True) }}">
   <meta property="og:image:alt" content="Shop vs Shop — Google Maps checkup for HVAC and plumbing shops">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{{ self.og_title() }}">
   <meta name="twitter:description" content="{{ self.og_description() }}">
-  <meta name="twitter:image" content="{{ url_for('static', filename='og.png', _external=True) }}">
-  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
-  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="32x32">
+  <meta name="twitter:image" content="{{ url_for('static', filename='brand/og-image-1200x630.png', _external=True) }}">
+  <link rel="icon" href="{{ url_for('static', filename='brand/favicon.ico') }}" sizes="any">
+  <link rel="icon" href="{{ url_for('static', filename='brand/favicon.svg') }}" type="image/svg+xml">
+  <link rel="icon" href="{{ url_for('static', filename='brand/favicon-16.png') }}" type="image/png" sizes="16x16">
+  <link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" type="image/png" sizes="32x32">
+  <link rel="icon" href="{{ url_for('static', filename='brand/favicon-48.png') }}" type="image/png" sizes="48x48">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand/apple-touch-icon.png') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='brand/site.webmanifest') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   {% block extra_head %}{% endblock %}
 </head>
@@ -26,7 +31,12 @@
   <header class="top">
     <div class="top-row">
       <a class="brand" href="{{ url_for('landing') }}" aria-label="Shop vs Shop">
-        <span class="brand-map">SHOP</span><span class="brand-vs">VS</span><span class="brand-gap">SHOP</span>
+        <picture>
+          <source srcset="{{ url_for('static', filename='brand/shopvsshop-header-transparent-for-dark-bg.svg') }}" type="image/svg+xml">
+          <img src="{{ url_for('static', filename='brand/shopvsshop-header-transparent-for-dark-bg@1x.png') }}"
+               srcset="{{ url_for('static', filename='brand/shopvsshop-header-transparent-for-dark-bg@1x.png') }} 1x, {{ url_for('static', filename='brand/shopvsshop-header-transparent-for-dark-bg@2x.png') }} 2x"
+               alt="Shop vs Shop" height="40">
+        </picture>
       </a>
       <nav>
         <a href="{{ url_for('landing') }}#lookup">Free check</a>
