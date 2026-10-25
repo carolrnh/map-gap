@@ -1,6 +1,8 @@
-# Map Gap
+# Shop vs Shop
 
-Self-serve Google Maps checkup for US HVAC and plumbing owners.
+Self-serve Google Maps checkup for US HVAC and plumbing owners. The site is [shopvsshop.com](https://shopvsshop.com). Support: support@shopvsshop.com.
+
+Other products named MapGap (mapgap.app, mapgap.pages.dev) are unrelated. This app used to be called Map Gap. The public name is Shop vs Shop. `MAPGAP_*` environment variable names are unchanged so the Render service keeps working. They can be renamed later.
 
 Flow: landing → business name + city **or** Google listing URL → free check (3 things the shops above you have) → **$195** competitor report. After pay, thank-you may offer **$397 Listing Rebuild**. There is **no monthly plan** on this site.
 
@@ -32,7 +34,9 @@ python3 -m venv .venv
 .venv/bin/python app.py
 ```
 
-`MAPGAP_PORT` defaults to `8787`. `MAPGAP_HOST` defaults to `0.0.0.0`.
+`MAPGAP_PORT` defaults to `8787`. `MAPGAP_HOST` defaults to `0.0.0.0`. Those names are intentional. Do not rename them in this deploy.
+
+`CANONICAL_HOST` is optional and **off when unset**. When it is set to a hostname (`shopvsshop.com`), a request on any other host gets a 301 to `https://shopvsshop.com` with the same path and query. `/health` is exempt so Render’s health check can still hit the onrender host. Leave it unset until DNS for shopvsshop.com is live. It is not set in `render.yaml`.
 
 ## Stripe (optional)
 
@@ -46,14 +50,15 @@ export STRIPE_REBUILD_PAYMENT_LINK_URL='https://buy.stripe.com/...'   # $397 tha
 ./run.sh
 ```
 
-In Stripe, set the Payment Link after-payment URL to `http://127.0.0.1:8787/thanks?report=<id>` (or your public origin). v1 delivers on that page — the app sends no email (Stripe sends the receipt).
+In Stripe, set the Payment Link after-payment URL to `https://shopvsshop.com/thanks` (locally, `http://127.0.0.1:8787/thanks?report=<id>`). v1 delivers on that page — the app sends no email (Stripe sends the receipt). The Payment Link itself lives in Stripe, not in this repo. If it still redirects to `map-gap.onrender.com`, update that URL in the Stripe Dashboard.
 
 ## Pages
 
 | Path | What |
 |---|---|
 | `/` | Landing + lookup |
-| `/what-is-map-gap` | Name-ownership: this Map Gap vs mapgaps.com / MAPGAPS protein |
+| `/what-is-shop-vs-shop` | What Shop vs Shop is. Says it is unrelated to other products named MapGap (mapgap.app, mapgap.pages.dev). |
+| `/what-is-map-gap` | 301 to `/what-is-shop-vs-shop` |
 | `POST /lookup` → `/teaser/<signed link>` | Free check. The link holds the public result so it still opens after a redeploy. |
 | `/pay/<id>` | $195 checkout stub |
 | `/thanks` | Post-pay drop + $397 Listing Rebuild |

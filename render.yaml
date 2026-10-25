@@ -7,6 +7,9 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
     healthCheckPath: /health
+    # CANONICAL_HOST is intentionally absent. shopvsshop.com DNS is not live.
+    # Set it in the Render dashboard (value: shopvsshop.com) only after the
+    # domain resolves. /health stays exempt in the app.
     envVars:
       - key: PYTHON_VERSION
         value: "3.13.5"

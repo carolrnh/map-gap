@@ -12,7 +12,7 @@ Locked homepage strings (do not regress):
 - **Trust line (once, in the footer):** You keep the listing. No ranking is guaranteed. Do not repeat that sentence on subpages.
 - **Wording:** checkup, not audit.
 - **Refund (approved, once on the homepage, in pricing):** If the report doesn’t show at least 3 specific fixes for your listing, I’ll refund you. No chat and no phone.
-- **mapgaps.com** disambiguation stays on `/what-is-map-gap` only.
+- **Other MapGap products** (mapgap.app, mapgap.pages.dev) stay on `/what-is-shop-vs-shop` only. The product name is Shop vs Shop, at shopvsshop.com. Support email: support@shopvsshop.com.
 
 **Stripe:** `report.PRICE` is the label ($195). The card amount is the Stripe Payment Link, not a number in this repo.
 
@@ -22,5 +22,5 @@ Locked homepage strings (do not regress):
 
 - Add testimonials, a named operator, or a sample report image. A TODO marks where a sample report would go.
 - Add a chat or phone path.
-- Put “Not mapgaps.com” back in the header.
+- Put “Not mapgaps.com” or the other-MapGap line back in the header.
 - Change the $195 or $397 prices.

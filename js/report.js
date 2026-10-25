@@ -1,4 +1,4 @@
-/* Map Gap — SKU A report renderer. Never invent numbers. UNKNOWN stays UNKNOWN. */
+/* Shop vs Shop — SKU A report renderer. Never invent numbers. UNKNOWN stays UNKNOWN. */
 (function () {
   const UNKNOWN = "UNKNOWN";
 
@@ -100,7 +100,7 @@
       ? '<div class="banner">EXAMPLE DATA — not a real business. Numbers and competitors are sample layout only. Do not treat as a live audit.</div>'
       : '<div class="banner unk">Public-data report. Every field not seen on a public page is <span class="unk">UNKNOWN</span>. UNKNOWN is not zero. Numbers are never invented.</div>';
 
-    const title = example ? "Map Gap — EXAMPLE Map Pack Report" : "Map Gap — Map Pack Report";
+    const title = example ? "Shop vs Shop — EXAMPLE Map Pack Report" : "Shop vs Shop — Map Pack Report";
     const who = s.name || intake.name || intake.gbpUrl || "intake";
 
     document.title = title + " · " + who;

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Map Gap — SKU A generator (local prototype)
+ * Shop vs Shop — SKU A generator (local prototype)
  * Public GBP page only. If fetch is blocked or a field is not visible, write UNKNOWN.
  * Never invent review counts, stars, categories, competitors, or positions.
  * Writes reports/<slug>.json ONLY. Never write index.html or templates/*.html.
@@ -80,7 +80,7 @@ async function fetchPublic(url) {
       headers: {
         Accept: "text/html,application/xhtml+xml",
         "Accept-Language": "en-US,en;q=0.9",
-        "User-Agent": "MapGapLocalAudit/0.1 (local prototype; public page only)",
+        "User-Agent": "ShopVsShop/0.1 (local prototype; public page only)",
       },
     });
     const html = await res.text();
@@ -278,7 +278,7 @@ function buildReport(intake, fetchInfo, observed) {
 
   return {
     sku: SKU,
-    product: "Map Gap",
+    product: "Shop vs Shop",
     title: "Map Pack Audit",
     price: PRICE,
     example: false,
@@ -307,7 +307,7 @@ function buildReport(intake, fetchInfo, observed) {
 }
 
 function usage() {
-  return `Map Gap SKU A generator — public fetch only, never invents numbers.
+  return `Shop vs Shop SKU A generator — public fetch only, never invents numbers.
 
   node generate.mjs --url "https://maps.google.com/..." --email you@example.com
   node generate.mjs --name "Shop Name" --city "Columbus" --email you@example.com
