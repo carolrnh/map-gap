@@ -215,7 +215,7 @@ class ChromeTests(unittest.TestCase):
 
     def test_subpages_say_checkup_and_trust_line_once(self):
         for path in (
-            "/what-is-map-gap",
+            "/what-is-shop-vs-shop",
             "/legal",
             "/pay",
             "/google-business-profile-audit-free",
@@ -249,7 +249,7 @@ class ChromeTests(unittest.TestCase):
         self.assertIn("<urlset", xml)
         for path in (
             "http://localhost/",
-            "http://localhost/what-is-map-gap",
+            "http://localhost/what-is-shop-vs-shop",
             "http://localhost/legal",
             "http://localhost/pay",
             "http://localhost/google-business-profile-suspended",

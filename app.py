@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Map Gap — self-serve free check + $195 paywall. No fake charges.
+"""Shop vs Shop — self-serve free check + $195 paywall. No fake charges.
 
 The dollar amount charged is set on the Stripe Payment Link
 (STRIPE_PAYMENT_LINK_URL), not in this repo. report.PRICE is the label.
@@ -45,6 +45,59 @@ app = Flask(
 app.config["SECRET_KEY"] = os.environ.get("MAPGAP_SECRET_KEY") or secrets.token_hex(16)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.jinja_env.auto_reload = True
+
+# Public name and domain. MAPGAP_* env vars stay as they are so the Render
+# service keeps working; rename those later, on purpose.
+PUBLIC_SITE = "shopvsshop.com"
+SUPPORT_EMAIL = "support@shopvsshop.com"
+
+
+def canonical_host() -> str:
+    """Hostname for the 301, or empty when the redirect is off.
+
+    CANONICAL_HOST stays unset until shopvsshop.com DNS is live. A scheme or
+    trailing slash is stripped. Default ports are stripped so the target is
+    https://<host> with no :443.
+    """
+    raw = (os.environ.get("CANONICAL_HOST") or "").strip()
+    if not raw:
+        return ""
+    if "://" in raw:
+        raw = raw.split("://", 1)[1]
+    host = raw.split("/")[0].strip().lower().rstrip(".")
+    if host.endswith(":443") or host.endswith(":80"):
+        host = host.rsplit(":", 1)[0]
+    return host
+
+
+def _host_without_port(host: str) -> str:
+    host = (host or "").strip().lower()
+    if host.startswith("["):
+        return host
+    return host.split(":")[0]
+
+
+@app.before_request
+def redirect_canonical_host():
+    """301 any other host to https://CANONICAL_HOST, same path and query.
+
+    No-op when CANONICAL_HOST is unset. /health is exempt so Render's health
+    check can keep calling the onrender host after the domain is turned on.
+    """
+    canonical = canonical_host()
+    if not canonical:
+        return None
+    if request.path == "/health" or request.path.startswith("/health/"):
+        return None
+    incoming = (request.host or "").strip().lower()
+    if incoming == canonical or (
+        ":" not in canonical and _host_without_port(incoming) == _host_without_port(canonical)
+    ):
+        return None
+    target = "https://" + canonical + request.full_path
+    if target.endswith("?") and not request.query_string:
+        target = target[:-1]
+    return redirect(target, code=301)
 
 _db_lock = threading.Lock()
 _places_cache: dict[str, tuple[float, dict, dict]] = {}
@@ -184,24 +237,18 @@ def seo():
 
 WHAT_IS_FAQS = [
     {
-        "q": "What is Map Gap?",
+        "q": "What is Shop vs Shop?",
         "a": (
-            "Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops: "
-            "a free check of 3 things the shops above you have, and a $195 competitor report. You keep the listing."
+            f"Shop vs Shop at {PUBLIC_SITE} is a Google Maps checkup for US HVAC and plumbing shops: "
+            "a free check of 3 things the shops above you have, and a $195 competitor report. You keep the listing. "
+            f"Support email: {SUPPORT_EMAIL}."
         ),
     },
     {
-        "q": "Is Map Gap the same as mapgaps.com?",
+        "q": "Is Shop vs Shop the same as MapGap?",
         "a": (
-            "mapgaps.com is a different product. This Map Gap is a Google Maps checkup "
-            "for HVAC and plumbing."
-        ),
-    },
-    {
-        "q": "Is this MAPGAPS protein software?",
-        "a": (
-            "Bioinformatics MAPGAPS is a different product. This Map Gap is a Google Maps checkup "
-            "for HVAC and plumbing."
+            "Other products named MapGap, including mapgap.app and mapgap.pages.dev, are unrelated. "
+            f"Shop vs Shop at {PUBLIC_SITE} is a Google Maps checkup for HVAC and plumbing."
         ),
     },
     {
@@ -291,13 +338,22 @@ def legal():
     return render_template("legal.html")
 
 
-@app.get("/what-is-map-gap")
+@app.get("/what-is-shop-vs-shop")
 def page_what_is():
     return render_template(
-        "what_is_map_gap.html",
+        "what_is_shop_vs_shop.html",
         faqs=WHAT_IS_FAQS,
         faq_ld=faq_page_json_ld(WHAT_IS_FAQS),
     )
+
+
+@app.get("/what-is-map-gap")
+def page_what_is_legacy():
+    """Old name-ownership URL. 301 keeps path bookmarks working."""
+    target = url_for("page_what_is")
+    if request.query_string:
+        target += "?" + request.query_string.decode("utf-8", "replace")
+    return redirect(target, code=301)
 
 
 @app.post("/lookup")
@@ -546,7 +602,7 @@ def robots():
 def main():
     host = os.environ.get("MAPGAP_HOST", "0.0.0.0")
     port = int(os.environ.get("PORT") or os.environ.get("MAPGAP_PORT", "8787"))
-    print(f"Map Gap → http://127.0.0.1:{port}/")
+    print(f"Shop vs Shop → http://127.0.0.1:{port}/")
     print("Payment:", "connected" if payment_connected() else "not connected (STRIPE_PAYMENT_LINK_URL unset)")
     app.run(host=host, port=port, debug=False, threaded=True)
 

@@ -1,4 +1,4 @@
-"""Name-ownership page and homepage copy: URL, pricing, and FAQPage JSON-LD."""
+"""Shop vs Shop page and homepage copy: URL, pricing, and FAQPage JSON-LD."""
 
 from __future__ import annotations
 
@@ -10,29 +10,34 @@ from pathlib import Path
 from app import app
 
 
-class WhatIsMapGapTests(unittest.TestCase):
+class WhatIsShopVsShopTests(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()
 
     def test_page_exists_with_approved_copy(self):
-        res = self.client.get("/what-is-map-gap")
+        res = self.client.get("/what-is-shop-vs-shop")
         self.assertEqual(res.status_code, 200)
         html = res.get_data(as_text=True)
         self.assertIn(
-            "Map Gap — Google Maps checkup for HVAC and plumbing (not mapgaps.com)",
+            "Shop vs Shop — Google Maps checkup for HVAC and plumbing",
             html,
         )
         self.assertIn(
-            "Map Gap at map-gap.onrender.com is an HVAC and plumbing Google Maps checkup — not mapgaps.com.",
+            "Shop vs Shop at shopvsshop.com is an HVAC and plumbing Google Maps checkup. It is unrelated to other products named MapGap.",
             html,
         )
         self.assertIn("a free check of 3 things the shops above you have, and a $195 competitor report", html)
+        self.assertIn("support@shopvsshop.com", html)
+        self.assertIn("mapgap.app", html)
+        self.assertIn("mapgap.pages.dev", html)
         self.assertNotIn("audit", html.lower())
+        self.assertNotIn("mapgaps.com", html)
+        self.assertNotIn("map-gap.onrender.com", html)
+        self.assertNotIn("MAPGAPS", html)
         self.assertIn("You keep the listing", html)
-        self.assertIn("mapgaps.com or bioinformatics MAPGAPS", html)
-        self.assertIn("What Map Gap is", html)
+        self.assertIn("What Shop vs Shop is", html)
         self.assertIn("Who it’s for / not for", html)
-        self.assertIn("Not the other MapGaps", html)
+        self.assertIn("Not the other MapGap products", html)
         self.assertIn("Listing rebuild — $397", html)
         self.assertIn("There is no monthly plan on this site.", html)
         self.assertIn("Show my 3 free gaps", html)
@@ -40,11 +45,19 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertNotIn("/pricing", html)
         self.assertNotIn("$197", html)
         self.assertNotRegex(html, r"guarantee(?:s|d)? (?:you )?#1")
-        source = Path("templates/what_is_map_gap.html").read_text(encoding="utf-8")
+        source = Path("templates/what_is_shop_vs_shop.html").read_text(encoding="utf-8")
         self.assertIn("TODO: Carol will add a sample report", source)
 
-    def test_faqpage_json_ld(self):
+    def test_old_path_redirects(self):
         res = self.client.get("/what-is-map-gap")
+        self.assertEqual(res.status_code, 301)
+        self.assertEqual(res.headers["Location"], "/what-is-shop-vs-shop")
+        queried = self.client.get("/what-is-map-gap?ref=old")
+        self.assertEqual(queried.status_code, 301)
+        self.assertEqual(queried.headers["Location"], "/what-is-shop-vs-shop?ref=old")
+
+    def test_faqpage_json_ld(self):
+        res = self.client.get("/what-is-shop-vs-shop")
         html = res.get_data(as_text=True)
         match = re.search(
             r'<script type="application/ld\+json">(.*?)</script>',
@@ -58,9 +71,8 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertEqual(
             names,
             [
-                "What is Map Gap?",
-                "Is Map Gap the same as mapgaps.com?",
-                "Is this MAPGAPS protein software?",
+                "What is Shop vs Shop?",
+                "Is Shop vs Shop the same as MapGap?",
                 "How much?",
                 "Do you take over the listing?",
                 "Do you guarantee rankings?",
@@ -69,8 +81,11 @@ class WhatIsMapGapTests(unittest.TestCase):
             ],
         )
         answers = " ".join(item["acceptedAnswer"]["text"] for item in data["mainEntity"])
-        self.assertIn("mapgaps.com is a different product", answers)
-        self.assertIn("Bioinformatics MAPGAPS is a different product", answers)
+        self.assertIn("mapgap.app and mapgap.pages.dev, are unrelated", answers)
+        self.assertIn("shopvsshop.com", answers)
+        self.assertIn("support@shopvsshop.com", answers)
+        self.assertNotIn("mapgaps.com", answers)
+        self.assertNotIn("map-gap.onrender.com", answers)
         self.assertIn("$195", answers)
         self.assertIn("$397", answers)
         self.assertNotIn("$197", answers)
@@ -84,7 +99,13 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertIn("Google Maps checkup for HVAC &amp; plumbing shops", html)
         self.assertNotIn("Not mapgaps.com", html)
         self.assertNotIn("mapgaps.com", html)
-        self.assertIn('href="/what-is-map-gap"', html)
+        self.assertNotIn("mapgap.app", html)
+        self.assertNotIn("map-gap.onrender.com", html)
+        self.assertNotIn(">Map Gap<", html)
+        self.assertIn("Shop vs Shop", html)
+        self.assertIn("support@shopvsshop.com", html)
+        self.assertIn('href="/what-is-shop-vs-shop"', html)
+        self.assertNotIn('href="/what-is-map-gap"', html)
         self.assertIn("Show my 3 free gaps", html)
         self.assertIn("Free check", html)
         self.assertIn("Competitor report — $195", html)

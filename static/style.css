@@ -59,13 +59,16 @@ a:hover { color: var(--gap); }
   text-decoration: none;
   color: inherit;
   font-weight: 800;
-  letter-spacing: .12em;
-  font-size: 14px;
+  letter-spacing: .06em;
+  font-size: 13px;
   display: inline-flex;
   align-items: center;
   min-height: 44px;
 }
+.brand picture { display: block; line-height: 0; }
+.brand img { height: 40px; width: auto; display: block; }
 .brand-map { background: #cfc4ad; color: var(--map); padding: 3px 7px; margin-right: 2px; }
+.brand-vs { color: #efe6d4; padding: 3px 5px; background: transparent; }
 .brand-gap { background: #d7b15e; color: #1f2a24; padding: 3px 7px; }
 .top nav { display: flex; gap: 8px; font-size: 14px; }
 .top nav a {

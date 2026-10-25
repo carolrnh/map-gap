@@ -1,4 +1,4 @@
-"""Public-data teaser lookup for Map Gap.
+"""Public-data teaser lookup for Shop vs Shop.
 
 Sources: OpenStreetMap Nominatim (identity + nearby HVAC/plumbing), and
 a best-effort fetch of a public Google listing URL the buyer pasted.
@@ -29,7 +29,7 @@ from typing import Any
 
 logger = logging.getLogger("mapgap.lookup")
 
-UA = "MapGap/1.0 (self-serve HVAC plumbing teaser; public data only)"
+UA = "ShopVsShop/1.0 (self-serve HVAC plumbing teaser; public data only)"
 NOMINATIM = "https://nominatim.openstreetmap.org/search"
 NOMINATIM_REVERSE = "https://nominatim.openstreetmap.org/reverse"
 TIMEOUT = 12
