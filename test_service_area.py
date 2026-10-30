@@ -189,6 +189,31 @@ class LookupTests(unittest.TestCase):
         teaser = build_reports(built)["teaser"]
         self.assertEqual(teaser["display_name"], "Rodan Heating and Air")
 
+    def test_marina_search_stays_in_category_and_drops_plumbing(self):
+        calls = []
+
+        def nominatim(params):
+            q = params.get("q") or ""
+            calls.append(q)
+            if q.startswith("Cove Marina Ventura"):
+                return [_osm("Cove Marina", "Ventura", street=True, osm_type="marina")]
+            if q.startswith("marina Ventura"):
+                return [
+                    _osm("Harbor Plumbing", "Ventura", street=True, osm_type="plumber"),
+                    _osm("Other Marina", "Ventura", street=True, osm_type="marina"),
+                ]
+            return []
+
+        with patch("lookup._nominatim", side_effect=nominatim), patch("lookup._get", return_value=(0, "", "")):
+            data = lookup.lookup("Cove Marina, Ventura")
+
+        self.assertFalse(any(q.startswith("plumber ") or q.startswith("hvac ") for q in calls))
+        self.assertTrue(any(q.startswith("marina Ventura") for q in calls))
+        names = [c["name"] for c in data["competitors"]]
+        self.assertIn("Other Marina", names)
+        self.assertNotIn("Harbor Plumbing", names)
+        self.assertNotIn("HVAC", data["thin_reason"])
+
     def test_hidden_street_is_not_copied_from_osm(self):
         def nominatim(params):
             q = params.get("q") or ""
@@ -350,6 +375,63 @@ class PageTests(unittest.TestCase):
         self.assertNotIn('class="card banner unk"', html)
         self.assertIn("No street address on the public listing", html)
         self.assertIn("lookup.js", html)
+
+    def test_places_too_few_message_is_the_result_lead(self):
+        message = (
+            "Not enough nearby businesses in the same Google category to compare. "
+            "This check will not compare you with a different kind of business."
+        )
+
+        def fake_run(name, city, listing_url):
+            return {
+                "places_mode": True,
+                "outcome": "no_competitors",
+                "queried_at": "Oct 30, 2026, 1:00 PM ET",
+                "user_input": {"name": "Harbor Marina", "city": "Ventura", "listing_url": ""},
+                "subject_place_id": "marina-1",
+                "competitor_place_ids": [],
+                "input": {"name": "Harbor Marina", "city": "Ventura", "listing_url": ""},
+                "retry_q": "Harbor Marina, Ventura",
+                "maps_url": "",
+                "found": True,
+                "listing": {
+                    "name": "Harbor Marina",
+                    "address": "1 Dock St, Ventura, CA",
+                    "city": "Ventura",
+                    "state": "CA",
+                    "service_area": False,
+                    "phone": None,
+                    "website": None,
+                    "hours": None,
+                    "category": "Marina",
+                    "rating": 4.2,
+                    "review_count": 12,
+                    "review_source": "Google Places",
+                    "photo_label": "2",
+                },
+                "sources": [],
+                "nearby": [],
+                "attributions": [],
+                "raw": {
+                    "places_mode": True,
+                    "thin": True,
+                    "thin_code": "no_competitors",
+                    "thin_reason": message,
+                    "vertical_ok": True,
+                    "missing_fields": ["other shops to compare"],
+                    "bullets": [],
+                    "city_source": "input",
+                    "unlock": False,
+                },
+            }
+
+        with patch.object(appmod, "run_lookup", side_effect=fake_run):
+            res = self.client.post("/lookup", data={"q": "Harbor Marina, Ventura"}, follow_redirects=True)
+        html = res.get_data(as_text=True)
+        self.assertEqual(res.status_code, 200)
+        self.assertIn(message, html)
+        self.assertNotIn("hvac contractor", html.lower())
+        self.assertIn('class="result-lead"', html)
 
     def test_not_found_does_not_use_the_three_reasons_headline(self):
         def fake_run(name, city, listing_url):

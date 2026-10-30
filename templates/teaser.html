@@ -13,8 +13,8 @@
 
 {% if not vertical_ok %}
   <div class="card banner unk">
-    <p>{{ thin_reason or "This page is HVAC and plumbing only." }}</p>
-    <p><a href="{{ url_for('landing') }}">Try an HVAC or plumbing listing</a></p>
+    <p>{{ thin_reason or "This check is for US listings." }}</p>
+    <p><a href="{{ url_for('landing') }}">Try another listing</a></p>
   </div>
 {% elif thin %}
   <div class="card banner unk">

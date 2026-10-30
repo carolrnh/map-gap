@@ -1,9 +1,10 @@
-# Copy lock — updated 2026-09-29 (Carol approved the site-audit recheck)
+# Copy lock — updated 2026-10-30 (owner widened the audience on 2026-10-26)
 
 Locked homepage strings (do not regress):
 
-- **Title / H1:** Why isn’t my HVAC or plumbing shop showing up on Google Maps?
-- **Header line:** Google Maps checkup for HVAC & plumbing shops
+- **Title / H1:** Why isn’t my business showing up on Google Maps?
+- **Header line:** Google Maps checkup for local businesses
+- **Audience:** Any local business with fixable Google listing gaps. Marinas, garden centers, landscapers, HVAC, and plumbing are examples. Do not say the check is only for HVAC or plumbing.
 - **Lede:** Paste your Google listing. In under a minute you’ll see 3 things the shops above you have that you don’t. Free, no login.
 - **Button:** Show my 3 free gaps
 - **Suspension (below the card, not under the button, and not the first price):** If Google *suspended* the listing, this check will not get it back. That’s an appeal to Google.

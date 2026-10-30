@@ -88,25 +88,6 @@ def _queried_at() -> str:
     return datetime.now().astimezone(ZoneInfo("America/New_York")).strftime("%b %-d, %Y, %-I:%M %p ET")
 
 
-def _vertical(subject: dict) -> str:
-    blob = " ".join(
-        [
-            subject.get("name") or "",
-            subject.get("primary_type") or "",
-            subject.get("category") or "",
-            " ".join(subject.get("types") or []),
-        ]
-    ).lower().replace("_", " ")
-    trade = any(w in blob for w in lookup.HVAC_PLUMBING) or any(
-        w in blob for w in ("hvac", "plumb", "heating", "cooling", "furnace", "air condition", "drain")
-    )
-    if any(w in blob for w in lookup.NOT_OURS) and not trade:
-        return "other"
-    if trade:
-        return "hvac_plumbing"
-    return "unknown"
-
-
 def _city_label(user_city: str, subject: dict) -> tuple[str, str]:
     """Visitor's city when they typed one, otherwise the city from Place Details."""
     typed = (user_city or "").strip()
@@ -239,7 +220,10 @@ def _pack(user: dict, subject: dict, competitors: list[dict], city_label: str, s
     if not competitors:
         outcome = "no_competitors"
         thin_code = "no_competitors"
-        thin_reason = "Not enough other shops came back from Places to compare."
+        thin_reason = (
+            "Not enough nearby businesses in the same Google category to compare. "
+            "This check will not compare you with a different kind of business."
+        )
         missing = ["other shops to compare"]
     elif len(gaps) < 3:
         outcome = "few_gaps"
@@ -419,23 +403,7 @@ def _from_subject_id(
     http,
 ) -> dict[str, Any]:
     subject = fetch_place(subject_id, api_key=api_key(), http=http)
-    vert = _vertical(subject)
     city_label, state = _city_label(user.get("city") or "", subject)
-    if vert == "other":
-        result = _empty(
-            user,
-            "wrong_vertical",
-            "wrong_vertical",
-            "This page is HVAC and plumbing only. The Places listing does not show this business as either.",
-            vertical_ok=False,
-        )
-        result["subject_place_id"] = subject.get("place_id") or subject_id
-        result["found"] = bool(subject.get("name"))
-        result["listing"] = _listing_from(subject, city_label, state)
-        result["maps_url"] = subject.get("maps_uri") or user.get("listing_url") or ""
-        result["attributions"] = list(subject.get("attributions") or [])
-        result["raw"]["vertical_ok"] = False
-        return result
     term = trade_term(
         subject.get("primary_type") or "",
         subject.get("types") or [],
@@ -446,7 +414,10 @@ def _from_subject_id(
     # because that pin is not a storefront. Results are then the nearest shops
     # inside the hard radius, not the first names Google returned.
     anchor = _anchor(subject, bias, city_label)
-    if anchor is None:
+    if not term:
+        logger.info("places competitors skipped: no category")
+        chosen = []
+    elif anchor is None:
         logger.info("places competitors skipped: no anchor")
         chosen = []
     else:

@@ -19,13 +19,14 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         html = res.get_data(as_text=True)
         self.assertIn(
-            "Map Gap — Google Maps checkup for HVAC and plumbing (not mapgaps.com)",
+            "Map Gap — Google Maps checkup for local businesses (not mapgaps.com)",
             html,
         )
         self.assertIn(
-            "Map Gap at map-gap.onrender.com is an HVAC and plumbing Google Maps checkup — not mapgaps.com.",
+            "Map Gap at map-gap.onrender.com is a Google Maps checkup for local businesses — not mapgaps.com.",
             html,
         )
+        self.assertIn("marinas, garden centers, landscapers, HVAC, and plumbing", html)
         self.assertIn("a free check of 3 things the shops above you have, and a $195 competitor report", html)
         self.assertNotIn("audit", html.lower())
         self.assertIn("You keep the listing", html)
@@ -74,14 +75,23 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertIn("$195", answers)
         self.assertIn("$397", answers)
         self.assertNotIn("$197", answers)
-        self.assertIn("HVAC and plumbing", answers)
+        self.assertIn("Any local business with fixable Google listing gaps", answers)
+        self.assertIn("Marinas, garden centers, landscapers, HVAC, and plumbing are examples.", answers)
+        self.assertNotIn("This check is for HVAC and plumbing shops.", answers)
+        self.assertNotIn("for HVAC and plumbing.", answers)
 
     def test_homepage_cross_links(self):
         res = self.client.get("/")
         self.assertEqual(res.status_code, 200)
         html = res.get_data(as_text=True)
-        self.assertIn("Why isn’t my HVAC or plumbing shop showing up on Google Maps?", html)
-        self.assertIn("Google Maps checkup for HVAC &amp; plumbing shops", html)
+        self.assertIn("Why isn’t my business showing up on Google Maps?", html)
+        self.assertIn("Google Maps checkup for local businesses", html)
+        self.assertIn(
+            "For any local business with fixable Google listing gaps. Marinas, garden centers, landscapers, HVAC, and plumbing are examples.",
+            html,
+        )
+        self.assertNotIn("HVAC and plumbing only", html)
+        self.assertNotIn("This check is for HVAC and plumbing shops.", html)
         self.assertNotIn("Not mapgaps.com", html)
         self.assertNotIn("mapgaps.com", html)
         self.assertIn('href="/what-is-map-gap"', html)

@@ -174,10 +174,10 @@ def load_report(rid: str) -> dict | None:
 
 def seo():
     return {
-        "title": "Why isn’t my HVAC or plumbing shop showing up on Google Maps?",
+        "title": "Why isn’t my business showing up on Google Maps?",
         "description": (
             "Paste your Google listing. See 3 things the shops above you have that you don’t. "
-            "Free check for HVAC and plumbing shops. Competitor report $195. Listing rebuild $397."
+            "Free check for local businesses. Competitor report $195. Listing rebuild $397."
         ),
     }
 
@@ -186,22 +186,23 @@ WHAT_IS_FAQS = [
     {
         "q": "What is Map Gap?",
         "a": (
-            "Map Gap at map-gap.onrender.com is a Google Maps checkup for US HVAC and plumbing shops: "
-            "a free check of 3 things the shops above you have, and a $195 competitor report. You keep the listing."
+            "Map Gap at map-gap.onrender.com is a Google Maps checkup for local businesses with fixable "
+            "Google listing gaps: a free check of 3 things the shops above you have, and a $195 competitor report. "
+            "You keep the listing. Marinas, garden centers, landscapers, HVAC, and plumbing are examples."
         ),
     },
     {
         "q": "Is Map Gap the same as mapgaps.com?",
         "a": (
             "mapgaps.com is a different product. This Map Gap is a Google Maps checkup "
-            "for HVAC and plumbing."
+            "for local businesses."
         ),
     },
     {
         "q": "Is this MAPGAPS protein software?",
         "a": (
             "Bioinformatics MAPGAPS is a different product. This Map Gap is a Google Maps checkup "
-            "for HVAC and plumbing."
+            "for local businesses."
         ),
     },
     {
@@ -230,7 +231,10 @@ WHAT_IS_FAQS = [
     },
     {
         "q": "Is this for any local business?",
-        "a": "This check is for HVAC and plumbing shops.",
+        "a": (
+            "Yes. Any local business with fixable Google listing gaps. "
+            "Marinas, garden centers, landscapers, HVAC, and plumbing are examples."
+        ),
     },
 ]
 

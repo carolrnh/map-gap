@@ -1,6 +1,6 @@
 # Map Gap
 
-Self-serve Google Maps checkup for US HVAC and plumbing owners.
+Self-serve Google Maps checkup for local businesses with fixable Google listing gaps. Marinas, garden centers, landscapers, HVAC, and plumbing are examples.
 
 Flow: landing → business name + city **or** Google listing URL → free check (3 things the shops above you have) → **$195** competitor report. After pay, thank-you may offer **$397 Listing Rebuild**. There is **no monthly plan** on this site.
 
@@ -67,7 +67,7 @@ Saved checks are signed into the result URL (`result_link.py`). Render’s free 
 
 - Default: OpenStreetMap Nominatim (1 request/second), plus the public page when a Google URL is pasted.
 - 90-day review velocity and Google posts stay **UNKNOWN** unless they were on that page. UNKNOWN is not zero.
-- HVAC/plumbing only. US only.
+- Any local category with fixable Google listing gaps. US listings only.
 
 ### Google Places (off until Carol sets it)
 
