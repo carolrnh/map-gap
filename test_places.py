@@ -250,6 +250,22 @@ class PlacesClientTests(EnvCase):
         self.assertNotIn("addressComponents", search_mask)
         self.assertIn("places.location", search_mask)
 
+    def test_marina_is_not_refused_for_category(self):
+        http = FakeHTTP()
+        http.subject = _subject()
+        http.subject["displayName"] = {"text": "Harbor Marina"}
+        http.subject["primaryType"] = "marina"
+        http.subject["primaryTypeDisplayName"] = {"text": "Marina"}
+        http.subject["googleMapsTypeLabel"] = {"text": "Marina"}
+        http.subject["types"] = ["marina", "point_of_interest", "establishment"]
+        result = run_places_lookup("Harbor Marina", "Ventura", "", http=http)
+        self.assertNotEqual(result["outcome"], "wrong_vertical")
+        self.assertTrue(result["raw"]["vertical_ok"])
+        self.assertNotIn("HVAC and plumbing only", result["raw"]["thin_reason"])
+        # Competitor search is unchanged: a non-trade category still queries HVAC.
+        search_body = json.loads(http.calls[2]["body"])
+        self.assertEqual(search_body["textQuery"], "hvac contractor")
+
     def test_new_fields_stay_inside_the_enterprise_sku(self):
         # Place Data Fields (New), checked 2026-09-24. These raise the call to
         # Enterprise + Atmosphere, which this check does not use.

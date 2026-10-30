@@ -118,7 +118,7 @@ def gaps_from_listing(listing: dict, sources: list[dict]) -> list[dict]:
             "id": "categories",
             "severity": "this_week",
             "title": "Check primary + secondary categories on the live Google listing",
-            "detail": "Automated fetch cannot see Google's secondary categories. HVAC shops often need HVAC contractor plus the repair/install categories they actually offer. Plumbers: Plumber, not generic Contractor. Do not keyword-stuff the business name.",
+            "detail": "Automated fetch cannot see Google's secondary categories. Add the categories you actually offer. HVAC shops often need HVAC contractor plus the repair or install categories they do. Plumbers: Plumber, not a generic contractor. A marina, garden center, or landscaper should use the category that matches the work. Do not keyword-stuff the business name.",
         }
     )
     gaps.append(
@@ -134,7 +134,7 @@ def gaps_from_listing(listing: dict, sources: list[dict]) -> list[dict]:
             "id": "services",
             "severity": "this_month",
             "title": "Fill the services section with real work you do",
-            "detail": "If drain cleaning, water heaters, furnace install, or IAQ are on your site but not on the Google listing, add them with 2–3 sentence descriptions. Do not list work you do not do.",
+            "detail": "If work you actually do is on your site but not on the Google listing — slip rental, seasonal plants, lawn care, drain cleaning, furnace install — add it with 2–3 sentence descriptions. Do not list work you do not do.",
         }
     )
     return gaps

@@ -869,7 +869,7 @@ def lookup(raw: str) -> dict[str, Any]:
         "trace": [],
         "city_source": "input" if city_from_input else "",
         "missing_fields": [],
-        "service_phrase": "HVAC / plumbing",
+        "service_phrase": "",
         "observed_at": datetime.now(timezone.utc).isoformat(),
         "unlock": False,
         "maps_url": parsed.get("url") or "",
@@ -1038,7 +1038,7 @@ def lookup(raw: str) -> dict[str, Any]:
 
     if subject.get("country_code") and subject["country_code"] != "us":
         result["thin_code"] = "not_us"
-        result["thin_reason"] = "US HVAC and plumbing shops only."
+        result["thin_reason"] = "US listings only."
         result["vertical_ok"] = False
         result["subject"] = subject
         return _finish(result)
@@ -1063,14 +1063,6 @@ def lookup(raw: str) -> dict[str, Any]:
                 extra_name,
             )
         subject["vertical"] = vert
-    if vert == "other":
-        result["vertical_ok"] = False
-        result["thin"] = True
-        result["thin_code"] = "wrong_vertical"
-        result["thin_reason"] = (
-            "This page is HVAC and plumbing only. Public map data does not show this listing as either."
-        )
-        return _finish(result)
 
     blob = (_blob(subject_hit) if subject_hit else "") + " " + extra_name.lower()
     if "plumb" in blob or "drain" in blob or "sewer" in blob:
@@ -1133,7 +1125,11 @@ def _bullets(result: dict[str, Any]) -> list[dict[str, str]]:
     subject = result.get("subject") or {}
     comps = result.get("competitors") or []
     city = subject.get("city") or result.get("input", {}).get("city") or "your city"
-    service = result.get("service_phrase") or "HVAC / plumbing"
+    service = (
+        (result.get("service_phrase") or "").strip()
+        or (subject.get("google_category") or "").strip()
+        or "local businesses"
+    )
     google = result.get("google") or {}
 
     # Categories — only name tags we actually saw.
