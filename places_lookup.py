@@ -220,7 +220,10 @@ def _pack(user: dict, subject: dict, competitors: list[dict], city_label: str, s
     if not competitors:
         outcome = "no_competitors"
         thin_code = "no_competitors"
-        thin_reason = "Not enough other shops came back from Places to compare."
+        thin_reason = (
+            "Not enough nearby businesses in the same Google category to compare. "
+            "This check will not compare you with a different kind of business."
+        )
         missing = ["other shops to compare"]
     elif len(gaps) < 3:
         outcome = "few_gaps"
@@ -411,7 +414,10 @@ def _from_subject_id(
     # because that pin is not a storefront. Results are then the nearest shops
     # inside the hard radius, not the first names Google returned.
     anchor = _anchor(subject, bias, city_label)
-    if anchor is None:
+    if not term:
+        logger.info("places competitors skipped: no category")
+        chosen = []
+    elif anchor is None:
         logger.info("places competitors skipped: no anchor")
         chosen = []
     else:

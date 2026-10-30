@@ -21,6 +21,9 @@ from places import (
     SEARCH_IDS_MASK,
     category_label,
     clean_website,
+    competitor_text,
+    same_trade,
+    trade_term,
     city_state_from_place,
     google_places_enabled,
     haversine_m,
@@ -250,7 +253,7 @@ class PlacesClientTests(EnvCase):
         self.assertNotIn("addressComponents", search_mask)
         self.assertIn("places.location", search_mask)
 
-    def test_marina_is_not_refused_for_category(self):
+    def test_marina_is_compared_only_with_marinas(self):
         http = FakeHTTP()
         http.subject = _subject()
         http.subject["displayName"] = {"text": "Harbor Marina"}
@@ -258,13 +261,97 @@ class PlacesClientTests(EnvCase):
         http.subject["primaryTypeDisplayName"] = {"text": "Marina"}
         http.subject["googleMapsTypeLabel"] = {"text": "Marina"}
         http.subject["types"] = ["marina", "point_of_interest", "establishment"]
+        http.subject["pureServiceAreaBusiness"] = False
+        marinas = []
+        for i in (1, 2, 3):
+            row = _comp(i, primary="marina", label="Marina")
+            row["googleMapsTypeLabel"] = {"text": "Marina"}
+            row["types"] = ["marina", "point_of_interest"]
+            marinas.append(row)
+        hvac = _comp(9)
+        hvac["id"] = "hvac-shop"
+        hvac["displayName"] = {"text": "Sample Comfort Co"}
+        http.competitors = [hvac, *marinas]
         result = run_places_lookup("Harbor Marina", "Ventura", "", http=http)
-        self.assertNotEqual(result["outcome"], "wrong_vertical")
+        search_body = json.loads(http.calls[2]["body"])
+        self.assertEqual(search_body["textQuery"], "marina")
+        self.assertNotIn("Ventura", search_body["textQuery"])
+        self.assertNotIn("hvac-shop", result["competitor_place_ids"])
+        self.assertEqual(result["competitor_place_ids"], ["ChIJcomp1", "ChIJcomp2", "ChIJcomp3"])
         self.assertTrue(result["raw"]["vertical_ok"])
-        self.assertNotIn("HVAC and plumbing only", result["raw"]["thin_reason"])
-        # Competitor search is unchanged: a non-trade category still queries HVAC.
+
+    def test_hvac_named_shop_with_a_generic_type_still_searches_hvac(self):
+        http = FakeHTTP()
+        http.subject = _subject()
+        http.subject["displayName"] = {"text": "Summit Heating"}
+        http.subject["primaryType"] = "general_contractor"
+        http.subject["primaryTypeDisplayName"] = {"text": "General contractor"}
+        http.subject["googleMapsTypeLabel"] = {"text": "General contractor"}
+        http.subject["types"] = ["general_contractor", "point_of_interest", "establishment"]
+        result = run_places_lookup("Summit Heating", "Ventura", "", http=http)
         search_body = json.loads(http.calls[2]["body"])
         self.assertEqual(search_body["textQuery"], "hvac contractor")
+        self.assertEqual(result["competitor_place_ids"], ["ChIJcomp1", "ChIJcomp2", "ChIJcomp3"])
+
+    def test_garden_center_searches_its_own_category(self):
+        http = FakeHTTP()
+        http.subject = _subject()
+        http.subject["displayName"] = {"text": "Oak Garden Center"}
+        http.subject["primaryType"] = "garden_center"
+        http.subject["primaryTypeDisplayName"] = {"text": "Garden center"}
+        http.subject["googleMapsTypeLabel"] = {"text": "Garden center"}
+        http.subject["types"] = ["garden_center", "store", "point_of_interest"]
+        http.subject["pureServiceAreaBusiness"] = False
+        centers = []
+        for i in (1, 2):
+            row = _comp(i, primary="garden_center", label="Garden center")
+            row["googleMapsTypeLabel"] = {"text": "Garden center"}
+            row["types"] = ["garden_center"]
+            centers.append(row)
+        hvac = _comp(9)
+        hvac["id"] = "hvac-shop"
+        http.competitors = [hvac, *centers]
+        result = run_places_lookup("Oak Garden Center", "Ventura", "", http=http)
+        search_body = json.loads(http.calls[2]["body"])
+        self.assertEqual(search_body["textQuery"], "garden center")
+        self.assertNotIn("hvac-shop", result["competitor_place_ids"])
+        self.assertEqual(result["competitor_place_ids"], ["ChIJcomp1", "ChIJcomp2"])
+
+    def test_too_few_same_category_shops_are_not_filled_with_another_category(self):
+        http = FakeHTTP()
+        http.subject = _subject()
+        http.subject["displayName"] = {"text": "Harbor Marina"}
+        http.subject["primaryType"] = "marina"
+        http.subject["primaryTypeDisplayName"] = {"text": "Marina"}
+        http.subject["googleMapsTypeLabel"] = {"text": "Marina"}
+        http.subject["types"] = ["marina"]
+        http.subject["pureServiceAreaBusiness"] = False
+        http.competitors = [_comp(1), _comp(2), _comp(3)]
+        result = run_places_lookup("Harbor Marina", "Ventura", "", http=http)
+        self.assertEqual(result["outcome"], "no_competitors")
+        self.assertEqual(result["competitor_place_ids"], [])
+        self.assertIn("same Google category", result["raw"]["thin_reason"])
+        self.assertIn("will not compare you with a different kind of business", result["raw"]["thin_reason"])
+
+    def test_generic_category_does_not_fall_back_to_hvac(self):
+        http = FakeHTTP()
+        http.subject = _subject()
+        http.subject["displayName"] = {"text": "Ace Widgets"}
+        http.subject["primaryType"] = "general_contractor"
+        http.subject["primaryTypeDisplayName"] = {"text": "General contractor"}
+        http.subject["googleMapsTypeLabel"] = {"text": "General contractor"}
+        http.subject["types"] = ["general_contractor", "point_of_interest", "establishment"]
+        http.subject["pureServiceAreaBusiness"] = False
+        result = run_places_lookup("Ace Widgets", "Ventura", "", http=http)
+        queries = [
+            json.loads(call["body"])["textQuery"]
+            for call in http.calls
+            if call["method"] == "POST" and call["body"]
+        ]
+        self.assertNotIn("hvac contractor", queries)
+        self.assertNotIn("plumber", queries)
+        self.assertEqual(result["outcome"], "no_competitors")
+        self.assertIn("will not compare you with a different kind of business", result["raw"]["thin_reason"])
 
     def test_new_fields_stay_inside_the_enterprise_sku(self):
         # Place Data Fields (New), checked 2026-09-24. These raise the call to
@@ -562,6 +649,29 @@ class GapTests(unittest.TestCase):
         subject = {"photo_count": 10, "review_count": 5, "rating": 5, "website": "x", "hours_listed": True, "phone": "1", "primary_type": "hvac_contractor", "category": "HVAC"}
         comp = {"name": "Other", "photo_count": 10, "review_count": 5, "rating": 5, "website": "y", "hours_listed": True, "phone": "2", "primary_type": "hvac_contractor", "category": "HVAC"}
         self.assertEqual(select_gaps(subject, [comp]), [])
+
+    def test_trade_terms_keep_hvac_and_plumbing_and_use_other_categories(self):
+        self.assertEqual(trade_term("hvac_contractor", ["hvac_contractor"], "Rodan Heating", "HVAC contractor"), "hvac")
+        self.assertEqual(trade_term("plumber", ["plumber"], "Andrus Plumbing", "Plumber"), "plumber")
+        self.assertEqual(trade_term("general_contractor", ["general_contractor"], "Summit Heating", "General contractor"), "hvac")
+        self.assertEqual(trade_term("marina", ["marina"], "Harbor Marina", "Marina"), "marina")
+        self.assertEqual(trade_term("garden_center", ["garden_center"], "Oak Garden Center", "Garden center"), "garden center")
+        self.assertEqual(trade_term("landscaper", ["landscaper"], "North Landscaping", "Landscaper"), "landscaper")
+        self.assertEqual(trade_term("general_contractor", ["general_contractor"], "Ace Widgets", "General contractor"), "")
+        self.assertEqual(competitor_text("hvac"), "hvac contractor")
+        self.assertEqual(competitor_text("plumber"), "plumber")
+        self.assertEqual(competitor_text("marina"), "marina")
+        self.assertEqual(competitor_text("garden center"), "garden center")
+        furnace = {"name": "Furnace Co", "category": "Furnace repair service", "primary_type": "general_contractor", "types": []}
+        marina = {"name": "Harbor Marina", "category": "Marina", "primary_type": "marina", "types": ["marina"]}
+        hvac = {"name": "Sample Comfort", "category": "HVAC contractor", "primary_type": "hvac_contractor", "types": ["hvac_contractor"]}
+        self.assertTrue(same_trade(furnace, "hvac"))
+        self.assertTrue(same_trade(hvac, "hvac"))
+        self.assertTrue(same_trade({"name": "Drain Co", "category": "Drain cleaning", "primary_type": "plumber", "types": []}, "plumber"))
+        self.assertTrue(same_trade(marina, "marina"))
+        self.assertFalse(same_trade(hvac, "marina"))
+        self.assertFalse(same_trade(marina, "hvac"))
+        self.assertFalse(same_trade(marina, "garden center"))
 
     def test_pick_competitors_skips_subject_and_closed(self):
         rows = [

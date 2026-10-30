@@ -66,7 +66,11 @@
   </div>
 {% elif thin %}
   <div class="card result-card">
+    {% if places_mode and raw.thin_code == 'no_competitors' and thin_reason %}
+    <p class="result-lead">{{ thin_reason }}</p>
+    {% else %}
     <p class="result-lead">We only report gaps we can see in public data.{% if missing %} For this listing we couldn't read: {% if missing|length == 1 %}{{ missing[0] }}{% else %}{{ missing[:-1]|join(', ') }} and {{ missing[-1] }}{% endif %}.{% endif %}</p>
+    {% endif %}
     <p class="result-explain">The ${{ price }} competitor report is only offered once we can show you 3 real gaps, so you never pay for a guess.</p>
     {% if raw.city_source == 'map_pin' and ident_city %}
     <p class="result-explain">The map pin is in {{ ident_city }}{% if ident_state %}, {{ ident_state }}{% endif %}. A service-area pin is often the middle of the area, not the shop. If this is the wrong city, type the right one below.</p>

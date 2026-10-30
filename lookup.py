@@ -567,6 +567,30 @@ def _blob(hit: dict[str, Any]) -> str:
     return " ".join(str(p) for p in parts).lower()
 
 
+_GENERIC_PUBLIC = {
+    "general contractor",
+    "establishment",
+    "point of interest",
+    "store",
+    "service",
+    "premise",
+    "geocode",
+    "political",
+    "health",
+    "finance",
+    "food",
+}
+
+
+def _public_category_term(subject: dict[str, Any]) -> str:
+    """Primary public category, or the OSM type when Google did not label one."""
+    raw = (subject.get("google_category") or subject.get("osm_type") or "").strip()
+    lowered = " ".join(raw.lower().replace("_", " ").split())
+    if not lowered or lowered in _GENERIC_PUBLIC:
+        return ""
+    return raw
+
+
 def _is_hvac_plumbing(hit: dict[str, Any], extra_text: str = "") -> str:
     blob = _blob(hit) + " " + (extra_text or "").lower()
     osm_type = (hit.get("type") or "").lower()
@@ -1070,9 +1094,13 @@ def lookup(raw: str) -> dict[str, Any]:
     elif any(w in blob for w in ("hvac", "heating", "cooling", "furnace", "air condition")):
         result["service_phrase"] = "AC repair"
 
-    # 2) Nearby public HVAC / plumbing listings in the same city (not invented).
+    # 2) Nearby listings in the same city (not invented).
+    # HVAC and plumbing keep the plumber-then-hvac search. Everyone else is
+    # searched by their own public category, and a different category is dropped.
     competitors: list[dict[str, Any]] = []
-    if city:
+    category_term = _public_category_term(subject)
+    same_category = subject.get("vertical") != "hvac_plumbing"
+    if city and subject.get("vertical") == "hvac_plumbing":
         seen_names = {subject["name"].lower()}
         for term in ("plumber", "hvac"):
             more = _nominatim({"q": f"{term} {city} United States", "limit": "10"})
@@ -1098,15 +1126,52 @@ def lookup(raw: str) -> dict[str, Any]:
                     break
             if len(competitors) >= 3:
                 break
+    elif city and category_term:
+        result["nearby_label"] = f"OpenStreetMap nearby {category_term}"
+        seen_names = {(subject.get("name") or "").lower()}
+        more = _nominatim({"q": f"{category_term} {city} United States", "limit": "10"})
+        time.sleep(1.05)
+        needle = category_term.lower()
+        for h in more:
+            p = _place(h, "nominatim")
+            if not p["name"] or p["name"].lower() in seen_names:
+                continue
+            if p["vertical"] == "hvac_plumbing":
+                continue
+            if p["city"] and city and p["city"].lower() != city.lower():
+                if city.lower() not in (p["display_name"] or "").lower():
+                    continue
+            blob = " ".join(
+                [
+                    p.get("name") or "",
+                    p.get("osm_type") or "",
+                    p.get("osm_category") or "",
+                    " ".join(p.get("tags") or []),
+                ]
+            ).lower().replace("_", " ")
+            if needle not in blob:
+                continue
+            seen_names.add(p["name"].lower())
+            competitors.append(p)
+            if len(competitors) >= 3:
+                break
+    elif same_category:
+        result["nearby_label"] = "OpenStreetMap nearby listings"
     result["competitors"] = competitors[:3]
 
     if not competitors:
         result["thin"] = True
         result["unlock"] = False
         result["thin_code"] = "no_competitors"
-        result["thin_reason"] = (
-            "Not enough other public shops to compare. The competitor report stays hidden until 3 real gaps are visible."
-        )
+        if subject.get("vertical") == "hvac_plumbing":
+            result["thin_reason"] = (
+                "Not enough other public shops to compare. The competitor report stays hidden until 3 real gaps are visible."
+            )
+        else:
+            result["thin_reason"] = (
+                "Not enough nearby businesses in the same category to compare. "
+                "This check will not compare you with a different kind of business."
+            )
         result["bullets"] = _bullets(result)
         result["missing_fields"] = _missing_fields(result)
         return _finish(result)
@@ -1395,20 +1460,29 @@ def run_lookup(name: str, city: str, listing_url: str) -> dict[str, Any]:
             "category": c.get("osm_type") or (c.get("tags") or [None])[0],
             "osm_url": None,
         })
+    nearby_label = (data.get("nearby_label") or "").strip() or "OpenStreetMap nearby HVAC/plumbing"
     if nearby:
+        if data.get("nearby_label"):
+            nearby_detail = f"{len(nearby)} other OSM listing(s) in this category. Not a Google ranking."
+        else:
+            nearby_detail = f"{len(nearby)} other OSM trade listing(s). Not a Google ranking."
         sources.append({
             "id": "osm_nearby",
-            "label": "OpenStreetMap nearby HVAC/plumbing",
+            "label": nearby_label,
             "status": "ok",
-            "detail": f"{len(nearby)} other OSM trade listing(s). Not a Google ranking.",
+            "detail": nearby_detail,
             "facts": {"listings": nearby},
         })
     else:
+        if data.get("nearby_label"):
+            empty_detail = "No other OSM listings in this category were returned for this city."
+        else:
+            empty_detail = "No other HVAC/plumbing OSM listings returned for this city."
         sources.append({
             "id": "osm_nearby",
-            "label": "OpenStreetMap nearby HVAC/plumbing",
+            "label": nearby_label,
             "status": "empty",
-            "detail": "No other HVAC/plumbing OSM listings returned for this city.",
+            "detail": empty_detail,
             "facts": {},
         })
 

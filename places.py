@@ -517,17 +517,43 @@ def fetch_place(place_id: str, *, api_key: str, http: HttpFn | None = None) -> d
     return place
 
 
+_PLUMB_HINTS = ("plumb", "drain", "sewer")
+_HVAC_HINTS = ("hvac", "heating", "air condition", "furnace", "cooling")
+_GENERIC_LABELS = {name.replace("_", " ") for name in _GENERIC_TYPES}
+
+
+def _norm_label(value: str) -> str:
+    return " ".join((value or "").lower().replace("_", " ").split())
+
+
 def trade_term(primary_type: str, types: list[str] | None, name: str, category: str = "") -> str:
-    """One search term from the subject's category, so a check is a single Text Search."""
-    primary = f"{primary_type or ''} {category or ''}".lower().replace("_", " ")
-    if any(w in primary for w in ("plumb", "drain", "sewer")):
+    """Search term for one Text Search.
+
+    HVAC and plumbing keep the terms they have always used. Every other listing
+    uses its primary Google category, then a specific type. A generic label
+    such as "general contractor" is not a category to compare.
+    """
+    primary = _norm_label(f"{primary_type or ''} {category or ''}")
+    if any(word in primary for word in _PLUMB_HINTS):
         return "plumber"
-    if any(w in primary for w in ("hvac", "heating", "air condition", "furnace", "cooling")):
+    if any(word in primary for word in _HVAC_HINTS):
         return "hvac"
-    blob = " ".join(types or []).lower().replace("_", " ") + " " + (name or "").lower()
-    if any(w in blob for w in ("plumb", "drain", "sewer")):
+    blob = _norm_label(" ".join(types or []) + " " + (name or ""))
+    if any(word in blob for word in _PLUMB_HINTS):
         return "plumber"
-    return "hvac"
+    if any(word in blob for word in _HVAC_HINTS):
+        return "hvac"
+    label = _norm_label(category)
+    if label and label not in _GENERIC_LABELS:
+        return label
+    primary_type_label = _norm_label(primary_type)
+    if primary_type_label and primary_type_label not in _GENERIC_LABELS:
+        return primary_type_label
+    for item in types or []:
+        type_label = _norm_label(str(item))
+        if type_label and type_label not in _GENERIC_LABELS:
+            return type_label
+    return ""
 
 
 def competitor_text(term: str) -> str:
@@ -538,9 +564,12 @@ def competitor_text(term: str) -> str:
     applies to categorical queries ("plumber"), not to a query that already
     geocodes a city.
     """
-    if (term or "").strip().lower() == "plumber":
+    lowered = _norm_label(term)
+    if lowered == "plumber":
         return "plumber"
-    return "hvac contractor"
+    if lowered == "hvac":
+        return "hvac contractor"
+    return lowered
 
 
 def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -584,12 +613,28 @@ def _trade_blob(place: dict) -> str:
 
 
 def same_trade(place: dict, term: str) -> bool:
+    """True when this result is the same kind of business as the search term.
+
+    HVAC and plumbing keep the hint match they have always used. Every other
+    term matches the Google category or type exactly, so a marina is not
+    compared with an HVAC shop.
+    """
+    lowered = _norm_label(term)
+    if not lowered:
+        return False
     blob = _trade_blob(place)
-    if (term or "").strip().lower() == "plumber":
-        hints = ("plumb", "drain", "sewer")
-    else:
-        hints = ("hvac", "heating", "air condition", "aircondition", "furnace", "cooling")
-    return any(hint in blob for hint in hints)
+    if lowered == "plumber":
+        return any(hint in blob for hint in _PLUMB_HINTS)
+    if lowered == "hvac":
+        return any(hint in blob for hint in ("hvac", "heating", "air condition", "aircondition", "furnace", "cooling"))
+    keys = {
+        _norm_label(str(place.get("category") or "")),
+        _norm_label(str(place.get("primary_type") or "")),
+    }
+    for item in place.get("types") or []:
+        keys.add(_norm_label(str(item)))
+    keys.discard("")
+    return lowered in keys
 
 
 def _state_matches(place: dict, subject_state: str) -> bool:
