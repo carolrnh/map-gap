@@ -20,3 +20,7 @@ services:
         value: "false"
       - key: PLACES_DAILY_CAP
         value: "150"
+      - key: PLACES_IP_LIMIT
+        value: "30"
+      - key: PLACES_IP_WINDOW_SECONDS
+        value: "86400"
