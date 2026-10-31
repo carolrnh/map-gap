@@ -1007,12 +1007,24 @@ class LocalCompetitorTests(EnvCase):
 class LimitTests(EnvCase):
     def test_ip_limit_is_per_visitor(self):
         os.environ["PLACES_IP_LIMIT"] = "2"
+        os.environ["PLACES_IP_WINDOW_SECONDS"] = "3600"
         limits.enforce_lookup_ip("10.0.0.1", now=1000)
         limits.enforce_lookup_ip("10.0.0.1", now=1001)
         with self.assertRaises(IpRateLimited):
             limits.enforce_lookup_ip("10.0.0.1", now=1002)
         limits.enforce_lookup_ip("10.0.0.2", now=1002)
         limits.enforce_lookup_ip("10.0.0.1", now=1000 + 3600)
+
+    def test_lookup_ip_default_is_thirty_per_day(self):
+        self.assertEqual(limits.ip_limit(), 30)
+        self.assertEqual(limits.ip_window_seconds(), 86400)
+        for i in range(30):
+            limits.enforce_lookup_ip("10.1.1.1", now=1000 + i)
+        with self.assertRaises(IpRateLimited):
+            limits.enforce_lookup_ip("10.1.1.1", now=1000 + 86399)
+        limits.enforce_lookup_ip("10.1.1.1", now=1000 + 86400)
+        os.environ.pop("PLACES_DAILY_CAP", None)
+        self.assertEqual(limits.places_daily_cap(), 150)
 
     def test_daily_cap_and_message(self):
         os.environ["PLACES_DAILY_CAP"] = "2"

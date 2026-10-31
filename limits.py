@@ -1,7 +1,8 @@
 """Abuse limits that run before any paid Places call.
 
-Per-visitor limit is in memory (the lookup form). The daily cap is a sqlite
-counter so a process restart cannot reset the spend guard.
+Per-visitor limit is in memory (the lookup form): one client can submit 30
+checks per rolling day. The Places daily cap is a sqlite counter so a process
+restart cannot reset the spend guard.
 """
 
 from __future__ import annotations
@@ -55,11 +56,11 @@ def _positive_int(name: str, default: int) -> int:
 
 
 def ip_limit() -> int:
-    return _positive_int("PLACES_IP_LIMIT", 5)
+    return _positive_int("PLACES_IP_LIMIT", 30)
 
 
 def ip_window_seconds() -> int:
-    return _positive_int("PLACES_IP_WINDOW_SECONDS", 3600)
+    return _positive_int("PLACES_IP_WINDOW_SECONDS", 86400)
 
 
 def usage_db_path() -> Path:
