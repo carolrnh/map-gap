@@ -19,11 +19,11 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         html = res.get_data(as_text=True)
         self.assertIn(
-            "Map Gap — Google Maps checkup for local businesses (not mapgaps.com)",
+            "Shop vs Shop — Google Maps checkup for local businesses (not mapgaps.com)",
             html,
         )
         self.assertIn(
-            "Map Gap at map-gap.onrender.com is a Google Maps checkup for local businesses — not mapgaps.com.",
+            "Shop vs Shop at map-gap.onrender.com is a Google Maps checkup for local businesses — not mapgaps.com.",
             html,
         )
         self.assertIn("marinas, garden centers, landscapers, HVAC, and plumbing", html)
@@ -31,7 +31,7 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertNotIn("audit", html.lower())
         self.assertIn("You keep the listing", html)
         self.assertIn("mapgaps.com or bioinformatics MAPGAPS", html)
-        self.assertIn("What Map Gap is", html)
+        self.assertIn("What Shop vs Shop is", html)
         self.assertIn("Who it’s for / not for", html)
         self.assertIn("Not the other MapGaps", html)
         self.assertIn("Listing rebuild — $397", html)
@@ -59,8 +59,8 @@ class WhatIsMapGapTests(unittest.TestCase):
         self.assertEqual(
             names,
             [
-                "What is Map Gap?",
-                "Is Map Gap the same as mapgaps.com?",
+                "What is Shop vs Shop?",
+                "Is Shop vs Shop the same as mapgaps.com?",
                 "Is this MAPGAPS protein software?",
                 "How much?",
                 "Do you take over the listing?",
