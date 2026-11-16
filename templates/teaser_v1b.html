@@ -10,7 +10,7 @@
 {% set retry_q = rec.lookup.retry_q or '' %}
 {% set unread = thin or not teaser.found or not vertical_ok %}
 {% set gap_n = bullets|length %}
-{% block title %}{% if unread and ident_name %}We couldn't read enough of {{ ident_name }}'s public listing — Map Gap{% elif unread %}We couldn't find that listing — Map Gap{% elif places_mode and gap_n > 0 and gap_n < 3 %}You're close. Here's what still separates you from the top 3 — Map Gap{% elif places_mode and gap_n == 0 and teaser.found %}No gap on the fields Places returns — Map Gap{% else %}3 things the shops above you have — Map Gap{% endif %}{% endblock %}
+{% block title %}{% if unread and ident_name %}We couldn't read enough of {{ ident_name }}'s public listing — Shop vs Shop{% elif unread %}We couldn't find that listing — Shop vs Shop{% elif places_mode and gap_n > 0 and gap_n < 3 %}You're close. Here's what still separates you from the top 3 — Shop vs Shop{% elif places_mode and gap_n == 0 and teaser.found %}No gap on the fields Places returns — Shop vs Shop{% else %}3 things the shops above you have — Shop vs Shop{% endif %}{% endblock %}
 {% block description %}Free check from the public listing. Review counts only if we could read them. Competitor report ${{ price }}.{% endblock %}
 {% block main %}
 <section class="hero tight">

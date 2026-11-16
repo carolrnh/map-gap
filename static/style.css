@@ -65,6 +65,8 @@ a:hover { color: var(--gap); }
   align-items: center;
   min-height: 44px;
 }
+.brand picture { display: block; line-height: 0; }
+.brand img { height: 40px; width: auto; display: block; }
 .brand-map { background: #cfc4ad; color: var(--map); padding: 3px 7px; margin-right: 2px; }
 .brand-gap { background: #d7b15e; color: #1f2a24; padding: 3px 7px; }
 .top nav { display: flex; gap: 8px; font-size: 14px; }

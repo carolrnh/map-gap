@@ -184,24 +184,24 @@ def seo():
 
 WHAT_IS_FAQS = [
     {
-        "q": "What is Map Gap?",
+        "q": "What is Shop vs Shop?",
         "a": (
-            "Map Gap at map-gap.onrender.com is a Google Maps checkup for local businesses with fixable "
+            "Shop vs Shop at map-gap.onrender.com is a Google Maps checkup for local businesses with fixable "
             "Google listing gaps: a free check of 3 things the shops above you have, and a $195 competitor report. "
             "You keep the listing. Marinas, garden centers, landscapers, HVAC, and plumbing are examples."
         ),
     },
     {
-        "q": "Is Map Gap the same as mapgaps.com?",
+        "q": "Is Shop vs Shop the same as mapgaps.com?",
         "a": (
-            "mapgaps.com is a different product. This Map Gap is a Google Maps checkup "
+            "mapgaps.com is a different product. This Shop vs Shop is a Google Maps checkup "
             "for local businesses."
         ),
     },
     {
         "q": "Is this MAPGAPS protein software?",
         "a": (
-            "Bioinformatics MAPGAPS is a different product. This Map Gap is a Google Maps checkup "
+            "Bioinformatics MAPGAPS is a different product. This Shop vs Shop is a Google Maps checkup "
             "for local businesses."
         ),
     },
