@@ -29,7 +29,8 @@ Tested in a 98 px header at 40 px tall. Suggested CSS: `height:40px; width:auto`
 - pin-transparent-for-cream-bg.svg (+ -512.png): dark/orange pin with no tile, for light backgrounds
 
 ## Social
-- og-image-1200x630.png (+ .svg): Open Graph / X / LinkedIn share image (`<meta property="og:image" ...>`, `twitter:card=summary_large_image`)
+- og-image-local-1200x630.png: current Open Graph / X / LinkedIn share image (tagline: MAPS CHECKUP · LOCAL BUSINESSES)
+- og-image-1200x630.png (+ .svg): kept for reference; earlier share image (tagline: MAPS CHECKUP · HVAC & PLUMBING)
 
 ## Board
 - board-final.png: overview of everything above, including a real-size header mock and browser-tab mock
